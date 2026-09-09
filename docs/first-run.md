@@ -46,21 +46,9 @@ jmo plan ExampleMedia/Shows --destination-root ExampleMedia/OrganizedShows --out
 
 For reproducibility, repeat into another new output directory using `--offline`. It must use the same overrides/session and warmed cache. Investigate any plan or decision hash differences before approval.
 
-## Read readiness honestly
-
-Every audit bundle includes `remaining.csv`. It is the authoritative list of entries that `jmo apply` deliberately leaves at the source or that still block apply. Matched videos, extras, and associated companions are excluded because they are apply-movable.
-
-`remaining.csv` marks each row as `intentional` or `blocking`:
-
-- duplicate loser videos and duplicate companions are intentional leftovers from apply; reversible quarantine is a separate approval;
-- held videos and ignored companions are intentional leftovers;
-- suspicious or unresolved videos and unresolved companions are blocking leftovers.
-
-`summary.txt` reports `readiness_state=not-evaluated|apply-ready|blocked`, `apply_safe`, `library_fully_organized`, and remaining totals. `apply_safe=true` means the approved movement subset may cross the apply boundary. It does **not** mean the source tree becomes empty. `library_fully_organized=true` is only reported when no planned leftovers remain at all.
-
 ## Check, approve, apply
 
-Read `summary.txt`, `remaining.csv`, and preflight together. Zero preflight findings means the approved subset is safe to apply, not that every library file will be organized. Held videos, duplicate losers, and ignored companions remain untouched by apply.
+Read the final summary and preflight. Zero findings means the approved subset is safe to apply, not that every library file will be organized. Held videos, duplicate losers, and ignored companions remain untouched.
 
 Take the exact plan hash from `plan.sha256`, review-session hash from `run-provenance.json` under `review.session_sha256`, and revision from `source_revision.commit`. Replace the uppercase placeholders below with those values:
 
@@ -76,9 +64,7 @@ Keep the complete bundle and journal. Verify the organized files and Jellyfin's 
 
 After interruption, preserve all files and artifacts. Resume with the exact same apply command, journal, and approval values plus `--resume`. Do not generate a replacement plan over a partially moved library and use it as a recovery shortcut.
 
-Apply resume handles incomplete groups and verifies completed ones. To reverse a completed apply, use the separate `jmo rollback` command with the original plan, preflight, provenance, approval hashes/revision, original roots, and `--apply-journal`. Start with `--check-only`; mutation additionally requires a new `--rollback-journal` and the exact `--confirm-rollback` token. It verifies fingerprints and refuses occupied original paths. Resume an interrupted rollback using that same rollback journal and `--resume`, not apply resume. If recovery reports an uncertain state, stop and follow its member-specific guidance.
-
-Duplicate quarantine is a separate opt-in workflow: `jmo quarantine-plan` creates an immutable artifact from reviewed duplicate decisions. `jmo quarantine` checks that artifact with `--approve-quarantine-plan-sha256`, the original approvals, and explicit source, destination, and quarantine roots. The quarantine root must be outside the library on the same filesystem. Check-only may inspect winners before apply, but mutation requires verified organized winners, a new journal, and the exact quarantine confirmation token. It moves reviewed losers only and never deletes them. `jmo quarantine-restore` reverses a completed quarantine using its original artifact/journal, a separate restore journal, and its own confirmation token. Run each command's `--help` for the required arguments; each mutating operation has its own `--check-only` gate. Restore quarantined losers before rolling back their organized winners.
+Recovery handles incomplete groups and verifies completed ones. It is not a general undo command for a successful whole-library run. If recovery reports an uncertain state, stop and follow its member-specific guidance.
 
 | Environment or operation | Support boundary |
 |---|---|
@@ -90,8 +76,6 @@ Duplicate quarantine is a separate opt-in workflow: `jmo quarantine-plan` create
 | Cross-volume moves | Unsupported; no copy-and-delete fallback |
 | NAS, SMB, unusual mounts | Not blanket-certified; validate actual atomic-rename and locking behavior with disposable files first; unsupported primitives fail closed |
 | Links and junctions | Rejected as media roots and within operation parent chains |
-| Completed-apply rollback | Supported with exact original artifacts, completed apply journal, revalidation, and separate approval/journal |
-| Duplicate quarantine and restore | Supported as separately approved same-filesystem operations; no deletion |
-| Duplicate deletion | Not implemented |
+| Duplicate deletion, quarantine, full-run undo | Not implemented |
 
 Updates require reinstalling the package and generating fresh reviewed artifacts when the executable revision changes. Never substitute an old approval token for a new build.

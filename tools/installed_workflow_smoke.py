@@ -5,16 +5,15 @@ Run with the installed environment's Python from outside the source checkout.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import json
-import subprocess
-import sys
-import sysconfig
 import tempfile
 from collections.abc import Mapping
 from dataclasses import replace
 from pathlib import Path
 
+from jellyfin_show_organizer.cli import main
 from jellyfin_show_organizer.providers import TvmazeProviderAdapter
 from jellyfin_show_organizer.review_contract import load_review_contract
 from jellyfin_show_organizer.review_execution import PlanningConfig, execute_plan
@@ -50,22 +49,14 @@ def getter(url: str, params: Mapping[str, str] | None = None) -> object:
 
 
 def cli(args: list[str]) -> str:
-    executable = Path(sysconfig.get_path("scripts")) / (
-        "jmo.exe" if sys.platform == "win32" else "jmo"
-    )
-    result = subprocess.run(
-        [str(executable), *args], capture_output=True, text=True, timeout=60
-    )
-    assert result.returncode == 0, (
-        args[0],
-        result.returncode,
-        result.stdout,
-        result.stderr,
-    )
-    return result.stdout
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        result = main(args)
+    assert result == 0, (args[0], result, output.getvalue())
+    return output.getvalue()
 
 
-def smoke(root: Path, *, duplicate: bool = False) -> None:
+def smoke(root: Path) -> None:
     revision = detect_source_revision()
     assert revision.state == "git" and revision.dirty is False, revision
     source, destination = root / "source", root / "destination"
@@ -95,24 +86,11 @@ def smoke(root: Path, *, duplicate: bool = False) -> None:
         target = source / new
         target.parent.mkdir(parents=True, exist_ok=True)
         (source / old).rename(target)
-    winner_path = seed.plan.records[0].destination
-    assert winner_path is not None
-    loser = series / "Example Aired Series S01E01.mkv"
-    if duplicate:
-        loser.write_bytes(b"synthetic-loser")
     first = execute_plan(
         replace(config, output_dir=root / "base-plan", offline=True), getter
     )
-    if not duplicate:
-        assert first.preflight.ready
-        assert all(r.source.relative_path == r.destination for r in first.plan.records)
-    answers: list[str] = []
-    if duplicate:
-        decision = next(
-            r.duplicate for r in first.plan.records if r.duplicate is not None
-        )
-        answers = ["s", f"C{decision.candidates.index(winner_path) + 1}"]
-    responses = iter(answers)
+    assert first.preflight.ready
+    assert all(r.source.relative_path == r.destination for r in first.plan.records)
     base_catalog = load_review_contract(base)
     session_path = root / "session.json"
     reviewed = root / "reviewed.toml"
@@ -125,7 +103,7 @@ def smoke(root: Path, *, duplicate: bool = False) -> None:
         session_path=session_path,
         output_override_path=reviewed,
         resume=False,
-        input_fn=lambda _: next(responses),
+        input_fn=lambda _: "",
         output=io.StringIO(),
     )
     final = root / "reviewed-plan"
@@ -183,8 +161,6 @@ def smoke(root: Path, *, duplicate: bool = False) -> None:
     resumed = json.loads(cli([*mutation, "--resume"]))
     assert resumed["members_moved"] == 0
     for record in manifest["records"]:
-        if record["status"] == "duplicate":
-            continue
         assert not (source / record["source"]["relative_path"]).exists()
         assert (destination / record["destination"]).read_bytes() == b"synthetic-video"
     for companion in manifest["companions"]:
@@ -193,99 +169,8 @@ def smoke(root: Path, *, duplicate: bool = False) -> None:
             destination / companion["destination"]
         ).read_bytes() == b"synthetic-subtitle"
 
-    if duplicate:
-        quarantine_workflow(root, args, loser)
-
-    rollback = ["rollback", *args[1:], "--apply-journal", str(root / "journal.jsonl")]
-    checked = json.loads(cli([*rollback, "--check-only"]))
-    assert checked["groups_total"] == 1 and checked["members_restored"] == 0
-    restore = [
-        *rollback,
-        "--rollback-journal",
-        str(root / "rollback.jsonl"),
-        "--confirm-rollback",
-        checked["confirmation_token"],
-    ]
-    assert json.loads(cli(restore))["members_restored"] == 2
-    assert json.loads(cli([*restore, "--resume"]))["members_restored"] == 0
-    for record in manifest["records"]:
-        if record["status"] == "duplicate":
-            continue
-        assert (
-            source / record["source"]["relative_path"]
-        ).read_bytes() == b"synthetic-video"
-        assert not (destination / record["destination"]).exists()
-    for companion in manifest["companions"]:
-        assert (
-            source / companion["relative_path"]
-        ).read_bytes() == b"synthetic-subtitle"
-        assert not (destination / companion["destination"]).exists()
-
-
-def quarantine_workflow(root: Path, apply_args: list[str], loser: Path) -> None:
-    shared = [apply_args[1]]
-    for flag in (
-        "--preflight",
-        "--run-provenance",
-        "--approve-plan-sha256",
-        "--approve-review-session-sha256",
-        "--approve-source-revision",
-    ):
-        shared.extend([flag, apply_args[apply_args.index(flag) + 1]])
-    qplan = root / "quarantine-plan.json"
-    created = json.loads(
-        cli(["quarantine-plan", *shared, "--output", str(qplan), "--json"])
-    )
-    assert created["members"] == 1
-    quarantine_root = root / "quarantine"
-    quarantine_root.mkdir()
-    for flag in ("--source-root", "--destination-root"):
-        shared.extend([flag, apply_args[apply_args.index(flag) + 1]])
-    shared.extend(
-        [
-            "--quarantine-root",
-            str(quarantine_root),
-            "--quarantine-plan",
-            str(qplan),
-            "--approve-quarantine-plan-sha256",
-            created["quarantine_plan_sha256"],
-            "--json",
-        ]
-    )
-    checked = json.loads(cli(["quarantine", *shared, "--check-only"]))
-    assert checked["members_moved"] == 0 and loser.read_bytes() == b"synthetic-loser"
-    journal = root / "quarantine.jsonl"
-    move = [
-        "quarantine",
-        *shared,
-        "--journal",
-        str(journal),
-        "--confirm-quarantine",
-        checked["confirmation_token"],
-    ]
-    assert json.loads(cli(move))["members_moved"] == 1
-    assert not loser.exists()
-    assert json.loads(cli([*move, "--resume"]))["members_moved"] == 0
-    restore = ["quarantine-restore", *shared, "--quarantine-journal", str(journal)]
-    checked = json.loads(cli([*restore, "--check-only"]))
-    assert checked["members_restored"] == 0 and not loser.exists()
-    restore += [
-        "--restore-journal",
-        str(root / "restore.jsonl"),
-        "--confirm-restore",
-        checked["confirmation_token"],
-    ]
-    assert json.loads(cli(restore))["members_restored"] == 1
-    assert json.loads(cli([*restore, "--resume"]))["members_restored"] == 0
-    assert loser.read_bytes() == b"synthetic-loser"
-    assert not list(quarantine_root.rglob("*.mkv"))
-
 
 if __name__ == "__main__":
     with tempfile.TemporaryDirectory(prefix="jmo-smoke-") as temporary:
         smoke(Path(temporary))
-    with tempfile.TemporaryDirectory(prefix="jmo-quarantine-smoke-") as temporary:
-        smoke(Path(temporary), duplicate=True)
-    print(
-        "Installed plan/review/apply/rollback/quarantine/restore/resume workflows passed"
-    )
+    print("Installed plan/review/check-only/apply/resume workflow passed")
