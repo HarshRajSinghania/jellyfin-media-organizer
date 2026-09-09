@@ -64,7 +64,9 @@ Keep the complete bundle and journal. Verify the organized files and Jellyfin's 
 
 After interruption, preserve all files and artifacts. Resume with the exact same apply command, journal, and approval values plus `--resume`. Do not generate a replacement plan over a partially moved library and use it as a recovery shortcut.
 
-Recovery handles incomplete groups and verifies completed ones. It is not a general undo command for a successful whole-library run. If recovery reports an uncertain state, stop and follow its member-specific guidance.
+Apply resume handles incomplete groups and verifies completed ones. To reverse a completed apply, use the separate `jmo rollback` command with the original plan, preflight, provenance, approval hashes/revision, original roots, and `--apply-journal`. Start with `--check-only`; mutation additionally requires a new `--rollback-journal` and the exact `--confirm-rollback` token. It verifies fingerprints and refuses occupied original paths. Resume an interrupted rollback using that same rollback journal and `--resume`, not apply resume. If recovery reports an uncertain state, stop and follow its member-specific guidance.
+
+Duplicate quarantine is a separate opt-in workflow: `jmo quarantine-plan` creates an immutable artifact from reviewed duplicate decisions. `jmo quarantine` checks that artifact with `--approve-quarantine-plan-sha256`, the original approvals, and explicit source, destination, and quarantine roots. The quarantine root must be outside the library on the same filesystem. Check-only may inspect winners before apply, but mutation requires verified organized winners, a new journal, and the exact quarantine confirmation token. It moves reviewed losers only and never deletes them. `jmo quarantine-restore` reverses a completed quarantine using its original artifact/journal, a separate restore journal, and its own confirmation token. Run each command's `--help` for the required arguments; each mutating operation has its own `--check-only` gate. Restore quarantined losers before rolling back their organized winners.
 
 | Environment or operation | Support boundary |
 |---|---|
@@ -76,6 +78,8 @@ Recovery handles incomplete groups and verifies completed ones. It is not a gene
 | Cross-volume moves | Unsupported; no copy-and-delete fallback |
 | NAS, SMB, unusual mounts | Not blanket-certified; validate actual atomic-rename and locking behavior with disposable files first; unsupported primitives fail closed |
 | Links and junctions | Rejected as media roots and within operation parent chains |
-| Duplicate deletion, quarantine, full-run undo | Not implemented |
+| Completed-apply rollback | Supported with exact original artifacts, completed apply journal, revalidation, and separate approval/journal |
+| Duplicate quarantine and restore | Supported as separately approved same-filesystem operations; no deletion |
+| Duplicate deletion | Not implemented |
 
 Updates require reinstalling the package and generating fresh reviewed artifacts when the executable revision changes. Never substitute an old approval token for a new build.
