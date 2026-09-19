@@ -2,6 +2,8 @@
 
 `jmo apply` is the only media-mutating command. It consumes one immutable reviewed plan and never reruns parsing, provider resolution, episode matching, duplicate selection, destination construction, or held-source review.
 
+For a first live rehearsal, use an immutable canary scope. A scope names an explicit, sorted proper subset of operation-group IDs from one exact plan; it cannot select the first N groups, infer a selection, or be reused with another plan, review session, source revision, or journal.
+
 Planning, review, and `jmo apply --check-only` remain non-mutating. A ready plan is necessary but is not permission to move media.
 
 ## Exact approval boundary
@@ -53,6 +55,25 @@ jmo apply LocalState/reviewed/plan.json \
 ```
 
 Check-only performs full live revalidation, creates no destination directories, writes no journal, and moves nothing. It prints the exact root-bound confirmation token required by an actual apply.
+
+### Optional one-group canary
+
+Create the scope outside both media roots, using the exact hashes and clean revision from the reviewed bundle:
+
+```text
+jmo apply-scope create LocalState/reviewed/plan.json \
+  --preflight LocalState/reviewed/preflight.json \
+  --run-provenance LocalState/reviewed/run-provenance.json \
+  --source-root ExampleMedia/Shows \
+  --destination-root ExampleMedia/OrganizedShows \
+  --approve-plan-sha256 PLAN_HASH \
+  --approve-review-session-sha256 SESSION_HASH \
+  --approve-source-revision REVISION \
+  --group-id OPERATION_GROUP_ID \
+  --output LocalState/canary-scope.json
+```
+
+Then add `--scope LocalState/canary-scope.json --approve-scope-sha256 SCOPE_HASH` to the check-only `jmo apply` command. The resulting token is bound to the scope as well as the plan, review session, revision, and roots. Check-only still moves nothing. A real canary requires the same exact scope, token, and an external journal; all groups outside the scope remain untouched.
 
 ## Actual apply
 

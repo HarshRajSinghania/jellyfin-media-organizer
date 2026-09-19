@@ -70,6 +70,8 @@ jmo apply LocalState/reviewed-plan/plan.json --preflight LocalState/reviewed-pla
 
 Check-only moves nothing. Inspect its file/group counts. To perform the approved test move, use the same command without `--check-only` and add `--journal LocalState/apply-001.jsonl`. The interactive prompt requires the complete confirmation token. Automated use requires `--confirm-apply` with that exact token. This is the first mutating step.
 
+For a cautious first live rehearsal, bind the apply to an explicit immutable subset of operation groups with `jmo apply-scope create`. The scope artifact must be outside both media roots and is included in the confirmation token. Follow the canary procedure in the [apply safety contract](apply-safety-contract.md#optional-one-group-canary); check-only remains mandatory before the canary mutation.
+
 Keep the complete bundle and journal. Verify the organized files and Jellyfin's interpretation before using the workflow on a larger library. Have an independent backup before real-library mutation.
 
 ## Recovery and support boundaries
