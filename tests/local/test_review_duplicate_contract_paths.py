@@ -206,6 +206,14 @@ def test_reviewed_duplicate_rejects_disappeared_candidate_set() -> None:
         _apply_duplicate_group_contract(current, catalog)
 
 
+def test_reviewed_winner_group_can_be_consumed_after_same_root_move() -> None:
+    plan = _plan(winner=FIRST)
+    catalog = _catalog(plan, action=DuplicateGroupAction.SELECT_WINNER, winner=FIRST)
+    current = replace(plan, records=(replace(plan.records[0], duplicate=None),))
+
+    assert _apply_duplicate_group_contract(current, catalog) is current
+
+
 def test_reviewed_duplicate_rejects_different_planner_winner() -> None:
     reviewed_plan = _plan(winner=FIRST)
     catalog = _catalog(

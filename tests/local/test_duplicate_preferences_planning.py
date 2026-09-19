@@ -165,6 +165,44 @@ def test_unknown_duplicate_preference_reference_fails_closed():
         )
 
 
+def test_consumed_reviewed_duplicate_winner_is_ignored_after_same_root_move():
+    records = [_record("Example Series/release-b.mkv")]
+    overrides = _catalog(
+        DuplicatePreferenceOverride(
+            source="Example Series/release-a.mkv",
+            rank=1_000_000,
+            reasons=(
+                "authoritative reviewed duplicate-group winner",
+                "reviewed-duplicate-ref:review-123",
+            ),
+        )
+    )
+
+    planned = _apply_duplicate_decisions(
+        records,
+        SidecarDiscovery(companions=(), unresolved=(), ignored=()),
+        overrides,
+    )
+
+    assert planned[0].status is TerminalStatus.MATCHED
+
+
+def test_existing_managed_destination_wins_against_old_duplicate_release():
+    managed = _record(
+        "Example Series (2024)/Season 01/Example Series (2024) S01E01 - Pilot.mkv"
+    )
+    release = _record("Example Series/release-a.mkv")
+    planned = _apply_duplicate_decisions(
+        [managed, release],
+        SidecarDiscovery(companions=(), unresolved=(), ignored=()),
+        _catalog(),
+    )
+
+    by_source = {record.source.relative_path: record for record in planned}
+    assert by_source[managed.source.relative_path].status is TerminalStatus.MATCHED
+    assert by_source[release.source.relative_path].status is TerminalStatus.DUPLICATE
+
+
 def test_preference_for_present_blocked_source_does_not_hide_plan_findings():
     source = "Example Series/blocked-source.mkv"
     blocked = _record(source)
