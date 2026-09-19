@@ -41,6 +41,18 @@ def test_doctor_rejects_state_inside_media(tmp_path: Path, capsys) -> None:
     assert "FIX REQUIRED" in capsys.readouterr().out
 
 
+def test_doctor_reports_missing_source(tmp_path: Path, capsys) -> None:
+    destination = tmp_path / "Organized"
+    destination.mkdir()
+    assert run_doctor(
+        tmp_path / "MissingShows",
+        destination,
+        tmp_path / "state",
+        tmp_path / "cache",
+    ) == 2
+    assert "source_exists" in capsys.readouterr().out
+
+
 def test_init_creates_reusable_state_without_overwriting(tmp_path: Path, capsys) -> None:
     source = tmp_path / "Shows"
     destination = tmp_path / "Organized"
@@ -73,6 +85,8 @@ def test_demo_creates_only_synthetic_workspace(tmp_path: Path, capsys) -> None:
     assert run_demo(output) == 0
     assert (output / "Shows" / "Example Show" / "Season 01" / "Example Show - S01E01.mkv").is_file()
     assert (output / "README.txt").is_file()
+    assert (output / "State" / "runs" / "demo-run" / "plan.json").is_file()
+    assert "apply-ready" in (output / "State" / "runs" / "demo-run" / "summary.txt").read_text(encoding="utf-8")
     assert run_demo(output) == 2
     assert "refusing" in capsys.readouterr().out.lower()
 

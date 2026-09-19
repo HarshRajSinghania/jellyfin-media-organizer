@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import textwrap
+from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
 
@@ -85,7 +86,7 @@ def run_init(
 
 
 def run_demo(output_dir: Path | None) -> int:
-    """Create a disposable synthetic library and instructions, without planning it."""
+    """Create a disposable synthetic library and run a complete offline rehearsal."""
 
     if output_dir is None:
         output = Path.cwd() / f"jmo-demo-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -102,6 +103,9 @@ def run_demo(output_dir: Path | None) -> int:
     organized.mkdir(parents=True)
     (state / "cache").mkdir(parents=True)
     (state / "runs").mkdir()
+    (state / "base-overrides.toml").write_text(
+        OVERRIDES_EXAMPLE, encoding="utf-8", newline="\n"
+    )
     (episode_dir / "Example Show - S01E01.mkv").write_bytes(b"synthetic demo video")
     (episode_dir / "Example Show - S01E01.en.srt").write_text(
         "1\n00:00:00,000 --> 00:00:01,000\nDemo subtitle\n", encoding="utf-8"
@@ -110,6 +114,56 @@ def run_demo(output_dir: Path | None) -> int:
         "Synthetic JMO demo media. It is safe to delete this entire directory.\n",
         encoding="utf-8",
     )
+    # Seed the normal TVMaze cache through its public cache API, using a local
+    # deterministic getter. The subsequent planner run is genuinely offline.
+    from .planner import PlanningConfig
+    from .review_execution import execute_plan
+    from .tvmaze_cache import TVMAZE_EPISODES_URL, TVMAZE_SEARCH_URL, TvmazeCatalogCache
+
+    def demo_getter(
+        url: str, params: Mapping[str, str] | None = None
+    ) -> object:
+        if url == TVMAZE_SEARCH_URL:
+            return [
+                {
+                    "score": 1.0,
+                    "show": {
+                        "id": 9001,
+                        "name": "Example Show",
+                        "premiered": "2020-01-01",
+                    },
+                }
+            ]
+        if url == TVMAZE_EPISODES_URL.format(tvmaze_id=9001):
+            return [
+                {
+                    "id": 900101,
+                    "season": 1,
+                    "number": 1,
+                    "name": "Pilot",
+                    "airdate": "2020-01-01",
+                    "type": "regular",
+                }
+            ]
+        raise AssertionError(f"unexpected demo provider URL: {url}")
+
+    cache = TvmazeCatalogCache(state / "cache")
+    cache.search_show("Example Show", demo_getter)
+    cache.episode_catalog(9001, demo_getter)
+    demo_run = state / "runs" / "demo-run"
+    outcome = execute_plan(
+        PlanningConfig(
+            shows_root=shows,
+            destination_root=organized,
+            output_dir=demo_run,
+            cache_dir=state / "cache",
+            overrides_path=state / "base-overrides.toml",
+            offline=True,
+        )
+    )
+    if not outcome.preflight.ready:
+        print("Demo failed: seeded offline plan was not preflight-ready")
+        return 2
     (output / "README.txt").write_text(
         f"""JMO synthetic demo workspace
 
@@ -118,14 +172,16 @@ This contains fabricated media only. It is safe to delete.
 Run from the repository or installed environment:
 
 jmo doctor "{shows}" --destination-root "{organized}" --output-dir "{state / 'runs' / 'initial'}" --cache-dir "{state / 'cache'}"
-jmo plan "{shows}" --destination-root "{organized}" --output-dir "{state / 'runs' / 'initial'}" --cache-dir "{state / 'cache'}" --offline
+jmo inspect "{demo_run}"
 
-The demo plan may remain unresolved because it has no provider cache.
-That is intentional: it demonstrates JMO's fail-closed behavior.
+The demo plan is created from a local synthetic provider cache and never makes
+a network request. It is safe to delete this entire directory.
 """,
         encoding="utf-8",
     )
     print(f"Created disposable demo workspace: {output}")
+    print(f"Demo audit bundle: {demo_run}")
+    print(f"Plan status: {'ready' if outcome.preflight.ready else 'blocked'}")
     print(f"Read the instructions in: {output / 'README.txt'}")
     return 0
 
