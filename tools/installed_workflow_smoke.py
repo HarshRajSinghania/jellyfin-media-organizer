@@ -66,7 +66,6 @@ def cli(args: list[str]) -> str:
 
 
 def smoke(root: Path, *, duplicate: bool = False) -> None:
-    cli(["apply-scope", "--help"])
     revision = detect_source_revision()
     assert revision.state == "git" and revision.dirty is False, revision
     source, destination = root / "source", root / "destination"
