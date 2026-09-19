@@ -6,6 +6,18 @@ from jellyfin_show_organizer.models import ParseResult
 pytestmark = pytest.mark.local
 
 
+def test_parser_decodes_jmo_managed_same_root_episode_path() -> None:
+    result = parse_video_path(
+        "Fullmetal Alchemist~003A Brotherhood (2009)/Season 01/"
+        "Fullmetal Alchemist~003A Brotherhood (2009) S01E01 - To Challenge the Sun.mkv"
+    )
+
+    assert result.series_hint == "Fullmetal Alchemist: Brotherhood"
+    assert result.year == 2009
+    assert result.season == 1
+    assert result.episodes == (1,)
+
+
 @pytest.mark.parametrize(
     ("relative_path", "expected"),
     [

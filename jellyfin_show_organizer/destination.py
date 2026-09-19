@@ -186,6 +186,33 @@ def sanitize_component(value: str, *, max_length: int = 180) -> str:
     return _truncate_component(_escape_component(value), max_length)
 
 
+def decode_sanitized_component(value: str) -> str:
+    """Decode the reversible portion of a JMO path component."""
+
+    if value.startswith("~R~"):
+        value = value[3:]
+    decoded: list[str] = []
+    index = 0
+    while index < len(value):
+        character = value[index]
+        if character != "~":
+            decoded.append(character)
+            index += 1
+            continue
+        if index + 1 < len(value) and value[index + 1] == "~":
+            decoded.append("~")
+            index += 2
+            continue
+        token = value[index + 1 : index + 5]
+        if len(token) == 4 and re.fullmatch(r"[0-9A-Fa-f]{4}", token):
+            decoded.append(chr(int(token, 16)))
+            index += 5
+            continue
+        decoded.append("~")
+        index += 1
+    return "".join(decoded)
+
+
 def _normalized_extension(extension: str) -> str:
     normalized = unicodedata.normalize("NFC", extension).casefold()
     if not re.fullmatch(r"\.[a-z0-9]{1,12}", normalized):
