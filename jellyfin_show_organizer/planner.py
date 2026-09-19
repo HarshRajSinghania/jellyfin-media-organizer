@@ -687,7 +687,21 @@ def _apply_duplicate_decisions(
         _path_key(preference.source)[0]
         for preference in overrides.duplicate_preferences
     }
-    if configured_keys - record_keys:
+    # Reviewed duplicate-group winners are historical inputs. Once a winner
+    # has been moved into the managed layout, its original source path is no
+    # longer present on a same-root re-scan. Keep legacy/manual references
+    # fail-closed, but allow these session-bound, already-consumed decisions to
+    # become inactive instead of blocking every subsequent paper run.
+    stale_reviewed_keys = {
+        _path_key(preference.source)[0]
+        for preference in overrides.duplicate_preferences
+        if any(
+            reason.startswith("reviewed-duplicate-ref:")
+            for reason in preference.reasons
+        )
+        and _path_key(preference.source)[0] not in record_keys
+    }
+    if configured_keys - record_keys - stale_reviewed_keys:
         raise PlanningConfigurationError(
             "duplicate preference references an unknown source"
         )
@@ -706,7 +720,17 @@ def _apply_duplicate_decisions(
                 ),
             )
             if configured is not None
-            else None
+            else (
+                DuplicatePreference(
+                    rank=2_000_000,
+                    reasons=(
+                        "already-managed destination is the canonical duplicate winner",
+                    ),
+                )
+                if _path_key(record.source.relative_path)[0]
+                == _path_key(record.destination or "")[0]
+                else None
+            )
         )
         collision_key = _provider_episode_duplicate_collision_key(record)
         if collision_key is not None:

@@ -532,6 +532,14 @@ def _apply_duplicate_group_contract(
     for reviewed in catalog.duplicate_group_decisions:
         group = current.get(reviewed.duplicate_ref)
         if group is None:
+            # A select-winner group is intentionally consumed when its
+            # reviewed winner has already been moved into the managed layout.
+            # On a same-root re-scan that winner no longer participates in the
+            # original collision, so there is no current group to verify. An
+            # entirely empty plan is still treated as a failure; it provides
+            # no evidence that the reviewed decision was consumed.
+            if reviewed.action is DuplicateGroupAction.SELECT_WINNER and plan.records:
+                continue
             raise PlanningConfigurationError(
                 "reviewed duplicate group no longer exists with the same candidate set"
             )
