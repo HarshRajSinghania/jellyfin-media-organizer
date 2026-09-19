@@ -2,7 +2,7 @@
 
 `jmo review` is the human-review boundary between an immutable JMO plan and a new reviewed override contract. It exists to record explicit decisions for duplicate groups and held sources without changing the media library.
 
-**Review never moves, renames, copies, overwrites, deletes, or quarantines media.** A quarantine-candidate answer records review state only; no quarantine execution exists. `jmo apply` is a separate command and accepts only a complete reviewed state plus exact approval and live revalidation.
+**Review never moves, renames, copies, overwrites, deletes, or quarantines media.** A quarantine-candidate answer records review state only. After review, the separate `jmo quarantine-plan` and `jmo quarantine` commands can move explicitly approved duplicate losers to a reversible same-filesystem quarantine; `jmo quarantine-restore` can restore them. Those commands have their own exact approvals, journals, and check-only gates.
 
 ## Plan schema requirement
 

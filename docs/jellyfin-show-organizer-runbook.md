@@ -168,7 +168,7 @@ Current status: approval requires the exact plan SHA-256, complete review-sessio
 
 Run the exact command first with `--check-only`. Check-only moves nothing and prints a confirmation token bound to the plan hash, review-session hash, clean revision, and resolved roots. An actual run requires that token through `--confirm-apply` (or exact interactive entry) plus a new `--journal` path outside both media roots. Only `matched` and `extra` videos and their associated companions are eligible. Duplicate, held, and ignored rows never move, even if a duplicate audit row retains a destination.
 
-Initial apply supports same-filesystem atomic no-overwrite renames only. It never performs copy-and-delete, overwrite, duplicate deletion, quarantine execution, or source-directory cleanup. See `docs/apply-safety-contract.md` for the complete command and safety contract.
+Initial apply supports same-filesystem atomic no-overwrite renames only. It never performs copy-and-delete, overwrite, duplicate deletion, quarantine execution, or source-directory cleanup. Duplicate quarantine is a separate explicitly approved workflow with its own plan, journal, check-only pass, and restore command. See `docs/apply-safety-contract.md` for the complete command and safety contract.
 
 ### 7. Verification and recovery
 

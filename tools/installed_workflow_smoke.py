@@ -234,7 +234,19 @@ def quarantine_workflow(root: Path, apply_args: list[str], loser: Path) -> None:
         shared.extend([flag, apply_args[apply_args.index(flag) + 1]])
     qplan = root / "quarantine-plan.json"
     created = json.loads(
-        cli(["quarantine-plan", *shared, "--output", str(qplan), "--json"])
+        cli(
+            [
+                "quarantine-plan",
+                *shared,
+                "--source-root",
+                apply_args[apply_args.index("--source-root") + 1],
+                "--destination-root",
+                apply_args[apply_args.index("--destination-root") + 1],
+                "--output",
+                str(qplan),
+                "--json",
+            ]
+        )
     )
     assert created["members"] == 1
     quarantine_root = root / "quarantine"

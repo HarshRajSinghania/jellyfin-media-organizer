@@ -54,6 +54,8 @@ def register_quarantine_commands(subparsers: Any) -> None:
         ),
     )
     _add_approval_args(plan_parser)
+    plan_parser.add_argument("--source-root", type=Path)
+    plan_parser.add_argument("--destination-root", type=Path)
     plan_parser.add_argument("--output", type=Path, required=True)
     plan_parser.add_argument("--json", action="store_true", dest="json_output")
     plan_parser.set_defaults(handler=_run_quarantine_plan)
@@ -105,16 +107,40 @@ def _paths_and_prepared(
     plan_path = cast(Path, args.plan).expanduser().resolve(strict=True)
     preflight_path = cast(Path, args.preflight).expanduser().resolve(strict=True)
     provenance_path = cast(Path, args.run_provenance).expanduser().resolve(strict=True)
-    prepared = prepare_apply(
-        plan_path,
-        preflight_path,
-        provenance_path,
-        approved_plan_sha256=cast(str, args.approve_plan_sha256).casefold(),
-        approved_review_session_sha256=cast(
-            str, args.approve_review_session_sha256
-        ).casefold(),
-        approved_source_revision=cast(str, args.approve_source_revision).casefold(),
-    )
+    source_arg = cast(Path | None, getattr(args, "source_root", None))
+    destination_arg = cast(Path | None, getattr(args, "destination_root", None))
+    if (source_arg is None) != (destination_arg is None):
+        raise QuarantineExecutionError(
+            "source-root and destination-root must be supplied together"
+        )
+    separate_roots = False
+    if source_arg is not None and destination_arg is not None:
+        separate_roots = source_arg.expanduser().resolve(
+            strict=True
+        ) != destination_arg.expanduser().resolve(strict=True)
+    if separate_roots:
+        prepared = prepare_apply(
+            plan_path,
+            preflight_path,
+            provenance_path,
+            approved_plan_sha256=cast(str, args.approve_plan_sha256).casefold(),
+            approved_review_session_sha256=cast(
+                str, args.approve_review_session_sha256
+            ).casefold(),
+            approved_source_revision=cast(str, args.approve_source_revision).casefold(),
+            separate_roots=True,
+        )
+    else:
+        prepared = prepare_apply(
+            plan_path,
+            preflight_path,
+            provenance_path,
+            approved_plan_sha256=cast(str, args.approve_plan_sha256).casefold(),
+            approved_review_session_sha256=cast(
+                str, args.approve_review_session_sha256
+            ).casefold(),
+            approved_source_revision=cast(str, args.approve_source_revision).casefold(),
+        )
     current = detect_source_revision()
     if current.state != "git":
         raise QuarantineExecutionError(

@@ -194,6 +194,45 @@ def test_paths_and_prepared_requires_exact_clean_git_revision(
     with pytest.raises(QuarantineExecutionError, match="dirty source checkout"):
         quarantine_cli._paths_and_prepared(args)
 
+
+def test_paths_and_prepared_binds_separate_root_scope(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    prepared_apply, _ = _prepared()
+    plan = tmp_path / "plan.json"
+    preflight = tmp_path / "preflight.json"
+    provenance = tmp_path / "run-provenance.json"
+    for path in (plan, preflight, provenance):
+        path.write_text("{}", encoding="utf-8")
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    source.mkdir()
+    destination.mkdir()
+    args = argparse.Namespace(
+        plan=plan,
+        preflight=preflight,
+        run_provenance=provenance,
+        source_root=source,
+        destination_root=destination,
+        approve_plan_sha256="A" * 64,
+        approve_review_session_sha256="B" * 64,
+        approve_source_revision="C" * 40,
+    )
+    observed: dict[str, object] = {}
+
+    def fake_prepare_apply(*_args: object, **kwargs: object) -> PreparedApply:
+        observed.update(kwargs)
+        return prepared_apply
+
+    monkeypatch.setattr(quarantine_cli, "prepare_apply", fake_prepare_apply)
+    monkeypatch.setattr(
+        quarantine_cli,
+        "detect_source_revision",
+        lambda: SourceRevision("git", "c" * 40, False),
+    )
+    assert quarantine_cli._paths_and_prepared(args)[3] == prepared_apply
+    assert observed["separate_roots"] is True
+
     monkeypatch.setattr(
         quarantine_cli,
         "detect_source_revision",
