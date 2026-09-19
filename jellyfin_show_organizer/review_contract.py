@@ -682,9 +682,11 @@ def compile_active_overrides(session: ReviewSession) -> bytes:
     raw.pop("review_session_sha256", None)
     raw.pop("review_base_plan_sha256", None)
     raw.pop("review_base_override_snapshot", None)
-    raw.pop("duplicate_group_decisions", None)
-    raw.pop("reviewed_episode_decisions", None)
-    raw.pop("extra_decisions", None)
+    # Keep previously validated decisions from the base contract. A later
+    # review session is often scoped to newly discovered records; discarding
+    # the base tables here would reopen every unrelated duplicate and held
+    # item. The per-item compilers below replace only dispositions that were
+    # answered in this session.
     for table in _TABLE_ORDER:
         raw.setdefault(table, [])
 
