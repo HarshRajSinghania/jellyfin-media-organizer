@@ -365,7 +365,9 @@ class _Journal:
             if entry.get("source_revision") != self.prepared.source_revision:
                 raise ApplyExecutionError("apply journal belongs to another revision")
             if entry.get("apply_scope_sha256") != self.prepared.apply_scope_sha256:
-                raise ApplyExecutionError("apply journal belongs to another apply scope")
+                raise ApplyExecutionError(
+                    "apply journal belongs to another apply scope"
+                )
             entries.append(entry)
         if not entries:
             raise ApplyExecutionError("resume journal is empty")

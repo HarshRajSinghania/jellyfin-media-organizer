@@ -77,7 +77,9 @@ def register_apply_scope_commands(subparsers: Any) -> None:
     create_parser.set_defaults(handler=_run_scope_create)
 
 
-def bind_optional_scope(args: argparse.Namespace, prepared: PreparedApply) -> PreparedApply:
+def bind_optional_scope(
+    args: argparse.Namespace, prepared: PreparedApply
+) -> PreparedApply:
     """Bind both scope arguments or require neither; never infer a scope."""
 
     scope_arg = cast(Path | None, getattr(args, "scope", None))
@@ -108,7 +110,9 @@ def _current_revision_matches(prepared: PreparedApply, *, operation: str) -> Non
             f"{operation} requires a verifiable clean Git source revision"
         )
     if revision.dirty:
-        raise ApplyExecutionError(f"{operation} refuses to run from a dirty source checkout")
+        raise ApplyExecutionError(
+            f"{operation} refuses to run from a dirty source checkout"
+        )
     if revision.commit != prepared.source_revision:
         raise ApplyExecutionError(
             f"running source revision does not match the approved {operation} plan"
@@ -119,7 +123,9 @@ def _run_scope_create(args: argparse.Namespace) -> int:
     try:
         plan_path = cast(Path, args.plan).expanduser().resolve(strict=True)
         preflight_path = cast(Path, args.preflight).expanduser().resolve(strict=True)
-        provenance_path = cast(Path, args.run_provenance).expanduser().resolve(strict=True)
+        provenance_path = (
+            cast(Path, args.run_provenance).expanduser().resolve(strict=True)
+        )
         source_root, destination_root = validate_apply_roots(
             cast(Path, args.source_root).expanduser(),
             cast(Path, args.destination_root).expanduser(),
@@ -146,7 +152,9 @@ def _run_scope_create(args: argparse.Namespace) -> int:
         if parent == source_root or parent.is_relative_to(source_root):
             raise ApplyScopeError("apply scope output must be outside the source root")
         if parent == destination_root or parent.is_relative_to(destination_root):
-            raise ApplyScopeError("apply scope output must be outside the destination root")
+            raise ApplyScopeError(
+                "apply scope output must be outside the destination root"
+            )
         write_apply_scope(output, scope)
     except (
         ApplyExecutionError,
@@ -187,7 +195,9 @@ def _run_apply(args: argparse.Namespace) -> int:
     try:
         plan_path = cast(Path, args.plan).expanduser().resolve(strict=True)
         preflight_path = cast(Path, args.preflight).expanduser().resolve(strict=True)
-        provenance_path = cast(Path, args.run_provenance).expanduser().resolve(strict=True)
+        provenance_path = (
+            cast(Path, args.run_provenance).expanduser().resolve(strict=True)
+        )
         source_root, destination_root = validate_apply_roots(
             cast(Path, args.source_root).expanduser(),
             cast(Path, args.destination_root).expanduser(),
