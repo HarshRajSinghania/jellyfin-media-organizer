@@ -1154,6 +1154,19 @@ def _external_state_path(path: Path, roots: tuple[Path, ...], label: str) -> Pat
     return resolved
 
 
+# Public orchestration seams used by the review pipeline.  The implementation
+# remains in this module for now, but callers should depend on these names
+# rather than reaching through planner's private namespace.  The underscored
+# names remain as compatibility aliases for older local integrations/tests.
+plan_episode = _plan_episode
+path_key = _path_key
+apply_duplicate_decisions = _apply_duplicate_decisions
+plan_companions = _plan_companions
+build_plan = _build_plan
+preflight_records = _preflight_records
+external_state_path = _external_state_path
+
+
 def execute_plan(
     config: PlanningConfig,
     getter: JsonGetter = http_json_getter,

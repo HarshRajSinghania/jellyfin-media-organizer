@@ -5,7 +5,6 @@ from collections import defaultdict
 from dataclasses import replace
 from pathlib import Path
 
-from . import planner as _planner
 from .destination import (
     DestinationPolicy,
     DestinationStatus,
@@ -14,7 +13,7 @@ from .destination import (
 )
 from .episode_assignment_strict import AssignmentStatus, SourceEpisodeAssignment
 from .extra_naming import derive_extra_display_identity
-from .inventory import InventoryStatus, scan_videos
+from .inventory import InventoryStatus, authorize_shows_root, scan_videos
 from .models import (
     DuplicateDecision,
     ExtraDecision,
@@ -23,7 +22,21 @@ from .models import (
     PlanRecord,
     TerminalStatus,
 )
-from .preflight import preflight_plan
+from .planner import (
+    PlanningConfig,
+    PlanningConfigurationError,
+    PlanningOutcome,
+    TrackingTvmazeCatalogCache,
+    apply_duplicate_decisions,
+    build_plan,
+    external_state_path,
+    http_json_getter,
+    path_key,
+    plan_companions,
+    plan_episode,
+    preflight_records,
+)
+from .preflight import authorize_destination_root, preflight_plan
 from .providers import MetadataProvider, ProviderEpisode, TvmazeProviderAdapter
 from .reports import write_audit_bundle
 from .review_contract import (
@@ -50,11 +63,6 @@ from .run_provenance import (
 from .schema import stable_plan_hash
 from .sidecars import discover_sidecars
 from .tvmaze_cache import CacheState, Clock, JsonGetter
-
-PlanningConfig = _planner.PlanningConfig
-PlanningConfigurationError = _planner.PlanningConfigurationError
-PlanningOutcome = _planner.PlanningOutcome
-http_json_getter = _planner.http_json_getter
 
 
 def _fingerprint(value) -> ReviewFingerprint:
@@ -276,7 +284,7 @@ def _reviewed_episode_record(
         extra=None,
         duplicate=None,
         provider_episodes=tuple(
-            _planner._plan_episode(episode) for episode in episodes
+            plan_episode(episode) for episode in episodes
         ),
         reason=None,
     )
@@ -428,14 +436,14 @@ def _apply_review_extensions(
     )
     records = _clear_duplicate_decisions(plan.records)
     source_keys = {
-        _planner._path_key(record.source.relative_path)[0] for record in records
+        path_key(record.source.relative_path)[0] for record in records
     }
     configured_episodes = {
-        _planner._path_key(decision.source)[0]
+        path_key(decision.source)[0]
         for decision in catalog.reviewed_episode_decisions
     }
     configured_extras = {
-        _planner._path_key(decision.source)[0] for decision in catalog.extra_decisions
+        path_key(decision.source)[0] for decision in catalog.extra_decisions
     }
     if configured_episodes - source_keys:
         raise PlanningConfigurationError(
@@ -456,7 +464,7 @@ def _apply_review_extensions(
             destination_policy,
         )
         if updated is not record:
-            consumed_episodes.add(_planner._path_key(record.source.relative_path)[0])
+            consumed_episodes.add(path_key(record.source.relative_path)[0])
         extra_updated = _explicit_extra_record(
             updated,
             plan,
@@ -464,7 +472,7 @@ def _apply_review_extensions(
             destination_policy,
         )
         if extra_updated is not updated:
-            consumed_extras.add(_planner._path_key(record.source.relative_path)[0])
+            consumed_extras.add(path_key(record.source.relative_path)[0])
         updated = _with_jellyfin_ids(extra_updated, catalog, destination_policy)
         reviewed_records.append(updated)
     if configured_episodes - consumed_episodes:
@@ -481,7 +489,7 @@ def _apply_review_extensions(
         if item.status is InventoryStatus.INCLUDED
     )
     sidecars = discover_sidecars(source_root, sources)
-    reviewed_records = _planner._apply_duplicate_decisions(
+    reviewed_records = apply_duplicate_decisions(
         reviewed_records,
         sidecars,
         catalog,
@@ -489,10 +497,10 @@ def _apply_review_extensions(
     ordered_records = tuple(
         sorted(
             reviewed_records,
-            key=lambda item: _planner._path_key(item.source.relative_path),
+            key=lambda item: path_key(item.source.relative_path),
         )
     )
-    companions = _planner._plan_companions(sidecars, ordered_records)
+    companions = plan_companions(sidecars, ordered_records)
     return replace(plan, records=ordered_records, companions=companions)
 
 
@@ -606,7 +614,7 @@ def _apply_duplicate_group_contract(
     ordered = tuple(
         sorted(
             by_source.values(),
-            key=lambda record: _planner._path_key(record.source.relative_path),
+            key=lambda record: path_key(record.source.relative_path),
         )
     )
     return replace(plan, records=ordered)
@@ -620,7 +628,7 @@ def _rebuild_companions(source_root, plan: OrganizerPlan) -> OrganizerPlan:
         if item.status is InventoryStatus.INCLUDED
     )
     sidecars = discover_sidecars(source_root, sources)
-    companions = _planner._plan_companions(sidecars, plan.records)
+    companions = plan_companions(sidecars, plan.records)
     return replace(plan, companions=companions)
 
 
@@ -663,15 +671,15 @@ def execute_plan(
 ) -> PlanningOutcome:
     """Execute the single plan-only path, including verified reviewed state."""
 
-    source_root = _planner.authorize_shows_root(config.shows_root)
-    destination_root = _planner.authorize_destination_root(config.destination_root)
+    source_root = authorize_shows_root(config.shows_root)
+    destination_root = authorize_destination_root(config.destination_root)
     roots = tuple({source_root.path, destination_root.path})
-    output_dir = _planner._external_state_path(
+    output_dir = external_state_path(
         config.output_dir,
         roots,
         "output directory",
     )
-    cache_dir = _planner._external_state_path(
+    cache_dir = external_state_path(
         config.cache_dir, roots, "cache directory"
     )
     if output_dir.exists():
@@ -687,7 +695,7 @@ def execute_plan(
             raise PlanningConfigurationError(
                 "schema-5 reviewed overrides require --review-session"
             )
-        session_file = _planner._external_state_path(
+        session_file = external_state_path(
             review_session_path,
             roots,
             "review session",
@@ -704,14 +712,14 @@ def execute_plan(
             "--review-session is only valid with schema-5 reviewed overrides"
         )
 
-    cache = _planner.TrackingTvmazeCatalogCache(
+    cache = TrackingTvmazeCatalogCache(
         cache_dir,
         offline=config.offline,
         refresh=config.refresh,
         clock=clock,
     )
     provider = TvmazeProviderAdapter(cache, getter)
-    plan = _planner._build_plan(source_root, config, overrides, cache, provider)
+    plan = build_plan(source_root, config, overrides, cache, provider)
     if review_catalog is not None:
         plan = _apply_review_extensions(
             plan,
@@ -726,7 +734,7 @@ def execute_plan(
     plan_hash = stable_plan_hash(plan)
     preflight = preflight_plan(
         plan_hash,
-        _planner._preflight_records(plan),
+        preflight_records(plan),
         source_root=source_root,
         destination_root=destination_root,
         max_path_length=config.max_path_length,
