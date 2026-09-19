@@ -150,6 +150,12 @@ commands, plus `config example` and `overrides example` helpers. These commands
 are convenience layers around the same planner artifacts; they do not bypass
 review, preflight, approval, journaling, or rollback requirements.
 
+Embedding applications should use the narrow public surface in
+`jellyfin_show_organizer.api`: `plan_library` returns the normal immutable
+planning outcome, and `inspect_audit` returns structured counts from an audit
+bundle. The API does not expose a media-mutation shortcut; integrations must
+still use the explicit reviewed CLI apply contract.
+
 ## Upstream foundation
 
 JMO began from the MIT-licensed `jkwill87/mnamer` project by Jessy Williams and has since diverged into a Jellyfin-focused architecture. The retained attribution and independence statement are documented in `ACKNOWLEDGMENTS.md`.

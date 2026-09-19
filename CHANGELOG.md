@@ -12,6 +12,8 @@ All notable public changes will be documented in this file. The project follows 
   and apply check-only commands.
 - Added opt-in `jmo plan --progress` reporting for inventory and show resolution;
   JSON mode remains free of progress noise.
+- Added the narrow read-only `jellyfin_show_organizer.api` integration surface
+  with `plan_library` and structured `inspect_audit` results.
 - Added a platform-neutral getting-started guide with explicit PowerShell and
   Linux/macOS workflows, review/apply boundaries, recovery guidance, and safe
   public bug-reporting practices.

@@ -107,6 +107,15 @@ python -m jellyfin_show_organizer --version
 python -m jellyfin_show_organizer plan --help
 ```
 
+Embedding applications can import the deliberately small read-only API:
+
+```python
+from jellyfin_show_organizer.api import inspect_audit, plan_library
+```
+
+The API exposes planning and audit inspection only. It does not bypass review,
+preflight, approval, journaling, or rollback requirements.
+
 ## Safety boundary
 
 The current implementation is **Shows-only**. Do not point it at a Movies directory, a mixed media root, or a parent directory containing unrelated media.

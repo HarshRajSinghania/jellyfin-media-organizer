@@ -2,4 +2,6 @@
 
 __version__ = "0.1.0"
 
-__all__ = ["__version__"]
+from .api import AuditSummary, inspect_audit, plan_library
+
+__all__ = ["AuditSummary", "__version__", "inspect_audit", "plan_library"]
