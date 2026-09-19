@@ -4,7 +4,7 @@ import hashlib
 import json
 import unicodedata
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 from typing import cast
@@ -957,6 +957,8 @@ def _build_plan(
     overrides: OverrideCatalog,
     cache: TrackingTvmazeCatalogCache,
     provider: MetadataProvider,
+    *,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> OrganizerPlan:
     inventory = scan_videos(source_root)
     blocked = tuple(
@@ -975,6 +977,8 @@ def _build_plan(
     )
     if not sources:
         raise PlanningConfigurationError("no included video files were found")
+    if progress is not None:
+        progress("inventory", len(sources), len(inventory))
     _validate_episode_decision_sources(sources, overrides)
     _validate_source_hold_sources(sources, overrides)
     sidecars = discover_sidecars(source_root, sources)
@@ -1011,7 +1015,8 @@ def _build_plan(
         max_component_length=config.max_component_length,
     )
     records: list[PlanRecord] = list(held_records)
-    for source_key in sorted(groups, key=_path_key):
+    ordered_groups = sorted(groups, key=_path_key)
+    for index, source_key in enumerate(ordered_groups, start=1):
         group = tuple(
             sorted(groups[source_key], key=lambda item: _path_key(item.relative_path))
         )
@@ -1021,6 +1026,8 @@ def _build_plan(
             overrides,
             provider,
         )
+        if progress is not None:
+            progress("resolving", index, len(ordered_groups))
         if resolution.status is not ResolutionStatus.MATCHED:
             records.extend(_unresolved_show_records(group, classifications, resolution))
             continue

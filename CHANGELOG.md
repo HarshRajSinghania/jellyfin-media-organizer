@@ -10,6 +10,8 @@ All notable public changes will be documented in this file. The project follows 
 - Added `jmo init` for non-overwriting state/config creation, `jmo demo` for a
   disposable synthetic workspace, and next-step guidance after plan, review,
   and apply check-only commands.
+- Added opt-in `jmo plan --progress` reporting for inventory and show resolution;
+  JSON mode remains free of progress noise.
 - Added a platform-neutral getting-started guide with explicit PowerShell and
   Linux/macOS workflows, review/apply boundaries, recovery guidance, and safe
   public bug-reporting practices.

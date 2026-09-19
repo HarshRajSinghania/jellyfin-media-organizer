@@ -117,6 +117,11 @@ def build_parser() -> argparse.ArgumentParser:
     plan_parser.add_argument("--max-component-length", type=int)
     plan_parser.add_argument("--json", action="store_true", dest="json_output")
     plan_parser.add_argument("--verbose", action="store_true")
+    plan_parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Print inventory and show-resolution progress to stderr.",
+    )
     plan_parser.set_defaults(handler=_run_plan)
 
     doctor_parser = subparsers.add_parser(
@@ -405,10 +410,16 @@ def _run_plan(args: argparse.Namespace) -> int:
     try:
         config = _planning_config(args)
         review_session = cast(Path | None, args.review_session)
-        outcome = execute_plan(
-            config,
-            review_session_path=review_session,
-        )
+        if bool(args.progress) and not bool(args.json_output):
+            outcome = execute_plan(
+                config,
+                review_session_path=review_session,
+                progress=lambda stage, current, total: print(
+                    f"{stage}: {current}/{total}", file=sys.stderr, flush=True
+                ),
+            )
+        else:
+            outcome = execute_plan(config, review_session_path=review_session)
     except (PlanningConfigurationError, OSError, RuntimeError, ValueError) as exc:
         detail = f": {exc}" if bool(args.verbose) else ""
         print(f"Planning failed safely{detail}", file=sys.stderr)

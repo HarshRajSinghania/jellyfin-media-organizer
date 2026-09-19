@@ -111,6 +111,10 @@ destinations, and state directories accidentally placed inside the media tree.
 jmo plan /path/to/Shows --config LocalState/planning.toml --overrides LocalState/base-overrides.toml
 ```
 
+For a large library, add `--progress` to show inventory and show-resolution
+progress on stderr. Progress is suppressed for `--json` so automation receives
+machine-readable output only.
+
 PowerShell example:
 
 ```powershell

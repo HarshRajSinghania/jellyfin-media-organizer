@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
 
@@ -668,6 +669,7 @@ def execute_plan(
     *,
     clock: Clock | None = None,
     review_session_path: Path | None = None,
+    progress: Callable[[str, int, int], None] | None = None,
 ) -> PlanningOutcome:
     """Execute the single plan-only path, including verified reviewed state."""
 
@@ -719,7 +721,14 @@ def execute_plan(
         clock=clock,
     )
     provider = TvmazeProviderAdapter(cache, getter)
-    plan = build_plan(source_root, config, overrides, cache, provider)
+    plan = build_plan(
+        source_root,
+        config,
+        overrides,
+        cache,
+        provider,
+        progress=progress,
+    )
     if review_catalog is not None:
         plan = _apply_review_extensions(
             plan,
