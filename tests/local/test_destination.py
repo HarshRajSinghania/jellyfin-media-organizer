@@ -11,6 +11,7 @@ from jellyfin_show_organizer.destination import (
     JellyfinProviderIdentifier,
     build_episode_destination,
     build_extra_destination,
+    decode_sanitized_component,
     find_destination_collisions,
     sanitize_component,
 )
@@ -250,6 +251,12 @@ def test_sanitizer_encodes_forbidden_trailing_and_reserved_values() -> None:
     assert sanitize_component("CON") == "~R~CON"
     assert sanitize_component("con.txt") == "~R~con.txt"
     assert sanitize_component("literal~escape") == "literal~~escape"
+
+
+def test_sanitized_component_round_trips_reversible_encoding() -> None:
+    encoded = sanitize_component("Fullmetal Alchemist: Brotherhood")
+    assert encoded == "Fullmetal Alchemist~003A Brotherhood"
+    assert decode_sanitized_component(encoded) == "Fullmetal Alchemist: Brotherhood"
 
 
 def test_sanitizer_normalizes_unicode_to_nfc() -> None:

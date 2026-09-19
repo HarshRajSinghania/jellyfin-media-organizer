@@ -4,6 +4,7 @@ import re
 from datetime import date
 from pathlib import PurePosixPath
 
+from .destination import decode_sanitized_component
 from .models import ParseResult
 from .parenthetical_aliases import parenthetical_show_aliases
 
@@ -466,6 +467,12 @@ def parse_video_path(relative_path: str) -> ParseResult:
     """
 
     normalized_path = relative_path.replace("\\", "/")
+    path_parts = normalized_path.split("/")
+    if len(path_parts) >= 3 and re.fullmatch(
+        r"Season\s+\d{1,2}", path_parts[1], re.IGNORECASE
+    ):
+        path_parts = [decode_sanitized_component(part) for part in path_parts]
+        normalized_path = "/".join(path_parts)
     path = PurePosixPath(normalized_path)
     stem = path.stem
     embedded_id = _embedded_tvmaze_id(stem)
