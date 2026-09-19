@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 
 from jellyfin_show_organizer.user_commands import (
@@ -49,6 +50,9 @@ def test_init_creates_reusable_state_without_overwriting(tmp_path: Path, capsys)
     assert run_init(source, destination, state) == 0
     assert (state / "planning.toml").is_file()
     assert (state / "base-overrides.toml").read_text(encoding="utf-8") == "schema_version = 4\n"
+    config = tomllib.loads((state / "planning.toml").read_text(encoding="utf-8"))
+    assert config["schema_version"] == 1
+    assert config["plan"]["overrides"] == "base-overrides.toml"
     assert run_init(source, destination, state) == 2
     assert "refusing" in capsys.readouterr().out.lower()
 

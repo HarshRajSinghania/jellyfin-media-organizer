@@ -40,6 +40,13 @@ def run_init(
     if not destination.is_dir() or destination.is_symlink():
         print(f"Init failed: destination must be a real existing directory: {destination}")
         return 2
+    try:
+        if os.stat(source).st_dev != os.stat(destination).st_dev:
+            print("Init failed: source and destination must be on the same filesystem")
+            return 2
+    except OSError as exc:
+        print(f"Init failed: cannot inspect source and destination filesystems: {exc}")
+        return 2
     if not _outside(state, (source, destination)):
         print("Init failed: state directory must be outside source and destination roots")
         return 2
