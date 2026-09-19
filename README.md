@@ -113,6 +113,7 @@ Repository examples and tests use synthetic paths and fixtures. Real library inv
 
 ## Documentation
 
+- [Getting started](docs/getting-started.md)
 - [Operational runbook](docs/jellyfin-show-organizer-runbook.md)
 - [Non-mutating review workflow](docs/review-workflow.md)
 - [Apply safety contract and runbook](docs/apply-safety-contract.md)

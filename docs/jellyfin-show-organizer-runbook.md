@@ -83,7 +83,7 @@ jmo plan ExampleMedia/Shows --destination-root ExampleMedia/OrganizedShows --out
 
 The command inventories videos, resolves metadata show-by-show through a persistent cache, plans video and subtitle destinations, classifies duplicates, runs whole-plan preflight, and writes `plan.json`, `plan.sha256`, `decision.sha256`, `run-provenance.json`, `preflight.json`, `preflight.txt`, `summary.txt`, `mapping.csv`, `unresolved.csv`, `extras.csv`, `duplicates.csv`, and `sidecars.csv`. It never moves, copies, renames, overwrites, or deletes media.
 
-Exit code `0` means the exact plan hash is preflight-ready. Configuration errors use `2`, provider failures use `4`, unresolved-only blocks use `10`, and other preflight blocks use `20`. A successful planning run is not approval to mutate media; no mutation command exists.
+Exit code `0` means the exact plan hash is preflight-ready. Configuration errors use `2`, provider failures use `4`, unresolved-only blocks use `10`, and other preflight blocks use `20`. A successful planning run is not approval to mutate media; the separate, explicitly gated `jmo apply` command is the only mutation path.
 
 For repeatable local defaults, use an explicit TOML file. Relative paths are resolved from the configuration file, and command-line values override its fields:
 
