@@ -63,6 +63,7 @@ jobs:
           "$RUNNER_TEMP/release-wheel-venv/bin/jmo" --version
           "$RUNNER_TEMP/release-wheel-venv/bin/organizer" plan --help
           "$RUNNER_TEMP/release-wheel-venv/bin/organizer" apply --help
+          "$RUNNER_TEMP/release-wheel-venv/bin/organizer" apply-scope --help
           "$RUNNER_TEMP/release-wheel-venv/bin/python" - <<'PY'
           from importlib.metadata import version
           from importlib.resources import files
@@ -91,6 +92,7 @@ jobs:
           "$RUNNER_TEMP/release-sdist-venv/bin/jmo" --version
           "$RUNNER_TEMP/release-sdist-venv/bin/organizer" plan --help
           "$RUNNER_TEMP/release-sdist-venv/bin/organizer" apply --help
+          "$RUNNER_TEMP/release-sdist-venv/bin/organizer" apply-scope --help
           "$RUNNER_TEMP/release-sdist-venv/bin/python" - <<'PY'
           from importlib.metadata import version
           from importlib.resources import files
