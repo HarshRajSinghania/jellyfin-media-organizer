@@ -139,9 +139,16 @@ python -m ruff check jellyfin_show_organizer tests
 python -m ruff format --check jellyfin_show_organizer tests
 jmo --version
 jmo plan --help
+jmo doctor --help
+jmo inspect --help
 ```
 
 The `organizer` console command remains a compatibility alias, and direct package execution remains supported.
+
+The end-user workflow also includes the read-only `doctor` and `inspect`
+commands, plus `config example` and `overrides example` helpers. These commands
+are convenience layers around the same planner artifacts; they do not bypass
+review, preflight, approval, journaling, or rollback requirements.
 
 ## Upstream foundation
 

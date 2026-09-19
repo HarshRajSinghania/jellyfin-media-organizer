@@ -26,6 +26,10 @@ JMO is intentionally conservative: planning and review remain non-mutating, whil
 
 `jmo plan` is operational and remains strictly non-mutating. It inventories one explicit Shows root, resolves each show through the persistent provider cache, constructs destinations, classifies duplicates and companions, runs preflight, and writes an immutable audit bundle. It never moves, copies, renames, overwrites, or deletes media.
 
+For first-time setup, run `jmo doctor` before planning and `jmo inspect` after a
+run to get a concise status summary. `jmo config example` and `jmo overrides
+example` generate starter files for reusable local configuration.
+
 `jmo review` consumes a fresh plan-schema-v3 manifest and records explicit review decisions into a resumable session plus a new reviewed override contract. Review can resolve duplicate decisions and held sources as provider-confirmed episodes/specials or explicit extras, but it is also strictly non-mutating: quarantine choices are markers only, and review never moves, deletes, or quarantines media. See the [non-mutating review workflow](docs/review-workflow.md) before using it.
 
 `jmo apply` consumes the already-reviewed `plan.json`, `preflight.json`, and `run-provenance.json`. It does not rerun parsing or make review decisions. Start with `--check-only`; an actual run additionally requires an external journal and the exact confirmation token bound to the plan hash, review-session hash, clean source revision, source root, and destination root. See the [apply safety contract](docs/apply-safety-contract.md).

@@ -81,6 +81,17 @@ Run it with one explicit source root, an existing destination root, and generate
 jmo plan ExampleMedia/Shows --destination-root ExampleMedia/OrganizedShows --output-dir LocalState/audit-001 --cache-dir LocalState/cache
 ```
 
+For a first-run environment check, run the read-only doctor before planning:
+
+```text
+jmo doctor ExampleMedia/Shows --destination-root ExampleMedia/OrganizedShows --output-dir LocalState/audit-001 --cache-dir LocalState/cache
+```
+
+After a plan completes, `jmo inspect LocalState/audit-001` summarizes the
+counts and recommends the next safe command without requiring users to open
+every report manually. `jmo config example` and `jmo overrides example` can
+write version-matched starter files.
+
 The command inventories videos, resolves metadata show-by-show through a persistent cache, plans video and subtitle destinations, classifies duplicates, runs whole-plan preflight, and writes `plan.json`, `plan.sha256`, `decision.sha256`, `run-provenance.json`, `preflight.json`, `preflight.txt`, `summary.txt`, `mapping.csv`, `unresolved.csv`, `extras.csv`, `duplicates.csv`, and `sidecars.csv`. It never moves, copies, renames, overwrites, or deletes media.
 
 Exit code `0` means the exact plan hash is preflight-ready. Configuration errors use `2`, provider failures use `4`, unresolved-only blocks use `10`, and other preflight blocks use `20`. A successful planning run is not approval to mutate media; the separate, explicitly gated `jmo apply` command is the only mutation path.

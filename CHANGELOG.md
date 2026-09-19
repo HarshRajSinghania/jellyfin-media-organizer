@@ -4,6 +4,12 @@ All notable public changes will be documented in this file. The project follows 
 
 ## Unreleased
 
+- Added read-only first-run usability commands: `jmo doctor` checks media and
+  state-root prerequisites, `jmo inspect` summarizes an audit bundle, and
+  `jmo config example` / `jmo overrides example` generate starter files.
+- Added a platform-neutral getting-started guide with explicit PowerShell and
+  Linux/macOS workflows, review/apply boundaries, recovery guidance, and safe
+  public bug-reporting practices.
 - Added the explicitly gated `jmo apply` executor with exact reviewed-artifact approval, clean-revision and root-bound confirmation, status-gated operation groups, same-filesystem atomic no-overwrite moves, durable journaling, rollback, resume, and final verification.
 - Planning, review, and apply check-only remain non-mutating; duplicate, held, ignored, cross-filesystem, overwrite, delete, quarantine, and source-cleanup operations remain unavailable.
 - Release-candidate, provider, cache, architecture, and audit-output documentation now matches the active schema and runtime behavior.
