@@ -20,17 +20,23 @@ def main() -> int:
     parser.add_argument("scoped", type=Path)
     parser.add_argument("plan_sha256")
     parser.add_argument("output", type=Path)
+    parser.add_argument("--source-contains", default=None)
     args = parser.parse_args()
 
     base = load_review_session(args.base.read_bytes())
     scoped = load_review_session(args.scoped.read_bytes())
     merged = {item.review_ref: item for item in base.items}
     for item in scoped.items:
-        if item.state is ReviewItemState.ANSWERED:
-            previous = merged.get(item.review_ref)
-            if previous is not None and previous != item:
-                raise SystemExit(f"conflicting answered review ref: {item.review_ref}")
-            merged[item.review_ref] = item
+        if args.source_contains is not None and (
+            item.source is None or args.source_contains.casefold() not in item.source.casefold()
+        ):
+            continue
+        previous = merged.get(item.review_ref)
+        if previous is not None and previous != item:
+            if item.state is not ReviewItemState.ANSWERED:
+                continue
+            raise SystemExit(f"conflicting answered review ref: {item.review_ref}")
+        merged[item.review_ref] = item
 
     session = ReviewSession(
         schema_version=base.schema_version,
