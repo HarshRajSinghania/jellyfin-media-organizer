@@ -18,6 +18,16 @@ def test_parser_decodes_jmo_managed_same_root_episode_path() -> None:
     assert result.episodes == (1,)
 
 
+def test_managed_numeric_episode_title_is_not_parsed_as_a_range() -> None:
+    result = parse_video_path(
+        "Gotham (2014)/Season 05/Gotham (2014) S05E06 - 13 Stitches.mkv"
+    )
+
+    assert result.series_hint == "Gotham"
+    assert result.season == 5
+    assert result.episodes == (6,)
+
+
 @pytest.mark.parametrize(
     ("relative_path", "expected"),
     [

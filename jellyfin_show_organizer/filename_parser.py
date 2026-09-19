@@ -468,10 +468,21 @@ def parse_video_path(relative_path: str) -> ParseResult:
 
     normalized_path = relative_path.replace("\\", "/")
     path_parts = normalized_path.split("/")
-    if len(path_parts) >= 3 and re.fullmatch(
+    managed_layout = len(path_parts) >= 3 and re.fullmatch(
         r"Season\s+\d{1,2}", path_parts[1], re.IGNORECASE
-    ):
+    )
+    if managed_layout:
         path_parts = [decode_sanitized_component(part) for part in path_parts]
+        normalized_path = "/".join(path_parts)
+        # Canonical JMO names put the episode title after ``S01E01 -``.
+        # If that title starts with a number (for example ``- 13 Stitches``),
+        # the general release parser must not reinterpret it as an episode
+        # range. Explicit ``-E02`` ranges remain valid and are untouched.
+        path_parts[-1] = re.sub(
+            r"(?i)(S\d{1,2}E\d{1,3})\s*-\s*(?=\d)",
+            r"\1 - #",
+            path_parts[-1],
+        )
         normalized_path = "/".join(path_parts)
     path = PurePosixPath(normalized_path)
     stem = path.stem
