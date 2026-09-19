@@ -42,6 +42,23 @@ replace it with `.\.venv\Scripts\jmo.exe` on PowerShell or
 
 ## Configure once, then reuse
 
+For an existing library, `jmo init` creates the state directory, cache,
+starter override, and planning config in one step. It never overwrites an
+existing state directory:
+
+```text
+jmo init /path/to/Shows --destination-root /path/to/OrganizedShows --state-dir LocalState
+```
+
+If you want to learn the workflow without using any real media, create the
+disposable synthetic workspace first:
+
+```text
+jmo demo --output JMO-demo
+```
+
+The demo contains fabricated files only and includes its own instructions.
+
 Create a state directory outside both media roots and save this as
 `LocalState/planning.toml`:
 

@@ -7,6 +7,9 @@ All notable public changes will be documented in this file. The project follows 
 - Added read-only first-run usability commands: `jmo doctor` checks media and
   state-root prerequisites, `jmo inspect` summarizes an audit bundle, and
   `jmo config example` / `jmo overrides example` generate starter files.
+- Added `jmo init` for non-overwriting state/config creation, `jmo demo` for a
+  disposable synthetic workspace, and next-step guidance after plan, review,
+  and apply check-only commands.
 - Added a platform-neutral getting-started guide with explicit PowerShell and
   Linux/macOS workflows, review/apply boundaries, recovery guidance, and safe
   public bug-reporting practices.

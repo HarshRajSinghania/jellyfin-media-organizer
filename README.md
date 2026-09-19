@@ -28,7 +28,9 @@ JMO is intentionally conservative: planning and review remain non-mutating, whil
 
 For first-time setup, run `jmo doctor` before planning and `jmo inspect` after a
 run to get a concise status summary. `jmo config example` and `jmo overrides
-example` generate starter files for reusable local configuration.
+example` generate starter files for reusable local configuration. `jmo init`
+creates that state layout in one step, and `jmo demo` creates a disposable
+synthetic workspace for learning the workflow without real media.
 
 `jmo review` consumes a fresh plan-schema-v3 manifest and records explicit review decisions into a resumable session plus a new reviewed override contract. Review can resolve duplicate decisions and held sources as provider-confirmed episodes/specials or explicit extras, but it is also strictly non-mutating: quarantine choices are markers only, and review never moves, deletes, or quarantines media. See the [non-mutating review workflow](docs/review-workflow.md) before using it.
 

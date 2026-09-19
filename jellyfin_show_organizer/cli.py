@@ -39,7 +39,9 @@ from .tvmaze_cache import TvmazeCatalogCache
 from .user_commands import (
     CONFIG_EXAMPLE,
     OVERRIDES_EXAMPLE,
+    run_demo,
     run_doctor,
+    run_init,
     run_inspect,
     write_example,
 )
@@ -132,6 +134,22 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser.add_argument("--json", action="store_true", dest="json_output")
     doctor_parser.set_defaults(handler=_run_doctor)
 
+    init_parser = subparsers.add_parser(
+        "init",
+        help="Create a reusable local config and state directory.",
+        description=(
+            "Create cache, run, planning, and override files without touching "
+            "media. Existing state directories are never overwritten."
+        ),
+    )
+    init_parser.add_argument("shows_root", type=Path)
+    init_parser.add_argument("--destination-root", type=Path, required=True)
+    init_parser.add_argument("--state-dir", type=Path, required=True)
+    init_parser.add_argument(
+        "--provider-mode", choices=("online", "offline", "refresh"), default="online"
+    )
+    init_parser.set_defaults(handler=_run_init)
+
     inspect_parser = subparsers.add_parser(
         "inspect",
         help="Summarize one completed audit bundle.",
@@ -140,6 +158,17 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser.add_argument("run_dir", type=Path)
     inspect_parser.add_argument("--json", action="store_true", dest="json_output")
     inspect_parser.set_defaults(handler=_run_inspect)
+
+    demo_parser = subparsers.add_parser(
+        "demo",
+        help="Create a disposable synthetic library and instructions.",
+        description=(
+            "Create fabricated media only. The demo never reads or changes a real "
+            "library and refuses to overwrite an existing directory."
+        ),
+    )
+    demo_parser.add_argument("--output", type=Path)
+    demo_parser.set_defaults(handler=_run_demo)
 
     review_parser = subparsers.add_parser(
         "review",
@@ -422,8 +451,13 @@ def _run_plan(args: argparse.Namespace) -> int:
             f"records={len(outcome.plan.records)} "
             f"findings={len(outcome.preflight.findings)}"
         )
-        if bool(args.verbose):
-            print(f"Audit bundle: {config.output_dir.resolve(strict=False)}")
+        print(f"Audit bundle: {config.output_dir.resolve(strict=False)}")
+        if outcome.preflight.ready:
+            print("Next step: inspect the bundle, then run jmo review if duplicate or held items need decisions.")
+        elif unresolved:
+            print("Next step: inspect unresolved.csv and preflight.txt; keep uncertain files untouched.")
+        else:
+            print("Next step: inspect preflight.txt before changing inputs or retrying.")
     return exit_code
 
 
@@ -554,14 +588,17 @@ def _run_review(args: argparse.Namespace) -> int:
     )
     if session.complete:
         print(f"Review complete: {state_text}")
+        print("Next step: compile a fresh reviewed plan with jmo plan and --review-session.")
         return 0
     if session.approved_partial:
         print(
             "Review saved: approved partial review-state only; no movement authorized. "
             f"scope_items={len(session.approved_scope_refs)} {state_text}"
         )
+        print("Next step: continue the remaining review scope before apply approval.")
         return 0
     print(f"Review saved: partial {state_text}")
+    print("Next step: resume this session with the same --session and --resume.")
     return REVIEW_INCOMPLETE_EXIT
 
 
@@ -679,6 +716,7 @@ def _run_apply(args: argparse.Namespace) -> int:
             f"members={total_moving_members(prepared)}"
         )
         print(f"Confirmation token:\n{token}")
+        print("Next step: review the counts and token; only then run the same command without --check-only and with --journal.")
     else:
         print(
             "Apply complete: "
@@ -740,11 +778,28 @@ def _run_doctor(args: argparse.Namespace) -> int:
     )
 
 
+def _run_init(args: argparse.Namespace) -> int:
+    return run_init(
+        cast(Path, args.shows_root),
+        cast(Path, args.destination_root),
+        cast(Path, args.state_dir),
+        provider_mode=cast(str, args.provider_mode),
+    )
+
+
 def _run_inspect(args: argparse.Namespace) -> int:
     try:
         return run_inspect(cast(Path, args.run_dir), json_output=bool(args.json_output))
     except (OSError, UnicodeError, ValueError) as exc:
         print(f"Inspect failed safely: {exc}", file=sys.stderr)
+        return 2
+
+
+def _run_demo(args: argparse.Namespace) -> int:
+    try:
+        return run_demo(cast(Path | None, args.output))
+    except OSError as exc:
+        print(f"Demo failed safely: {exc}", file=sys.stderr)
         return 2
 
 

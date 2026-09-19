@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import textwrap
+from datetime import datetime
 from pathlib import Path
 
 CONFIG_EXAMPLE = '''schema_version = 1
@@ -18,6 +20,107 @@ max_component_length = 180
 '''
 
 OVERRIDES_EXAMPLE = "schema_version = 4\n"
+
+
+def run_init(
+    shows_root: Path,
+    destination_root: Path,
+    state_dir: Path,
+    *,
+    provider_mode: str = "online",
+) -> int:
+    """Create a local, non-overwriting JMO state directory and config."""
+
+    source = shows_root.expanduser().resolve(strict=False)
+    destination = destination_root.expanduser().resolve(strict=False)
+    state = state_dir.expanduser().resolve(strict=False)
+    if not source.is_dir() or source.is_symlink():
+        print(f"Init failed: source must be a real existing directory: {source}")
+        return 2
+    if not destination.is_dir() or destination.is_symlink():
+        print(f"Init failed: destination must be a real existing directory: {destination}")
+        return 2
+    if not _outside(state, (source, destination)):
+        print("Init failed: state directory must be outside source and destination roots")
+        return 2
+    if provider_mode not in {"online", "offline", "refresh"}:
+        print(f"Init failed: unsupported provider mode: {provider_mode}")
+        return 2
+    if state.exists():
+        print(f"Init failed: refusing to use existing state directory: {state}")
+        return 2
+    state.mkdir(parents=True)
+    (state / "cache").mkdir()
+    (state / "runs").mkdir()
+    destination_value = os.path.relpath(destination, state).replace(os.sep, "/")
+    config = textwrap.dedent(
+        f'''\
+        schema_version = 1
+
+        [plan]
+        destination_root = "{destination_value}"
+        output_dir = "runs/initial"
+        cache_dir = "cache"
+        overrides = "base-overrides.toml"
+        provider_mode = "{provider_mode}"
+        max_path_length = 240
+        max_component_length = 180
+        '''
+    )
+    (state / "planning.toml").write_text(config, encoding="utf-8", newline="\n")
+    (state / "base-overrides.toml").write_text(
+        OVERRIDES_EXAMPLE, encoding="utf-8", newline="\n"
+    )
+    print(f"Initialized JMO state: {state}")
+    print(f"Next step: jmo doctor \"{source}\" --destination-root \"{destination}\" --output-dir \"{state / 'runs' / 'initial'}\" --cache-dir \"{state / 'cache'}\"")
+    print(f"Then:      jmo plan \"{source}\" --config \"{state / 'planning.toml'}\"")
+    return 0
+
+
+def run_demo(output_dir: Path | None) -> int:
+    """Create a disposable synthetic library and instructions, without planning it."""
+
+    if output_dir is None:
+        output = Path.cwd() / f"jmo-demo-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    else:
+        output = output_dir.expanduser().resolve(strict=False)
+    if output.exists():
+        print(f"Demo failed: refusing to overwrite existing directory: {output}")
+        return 2
+    shows = output / "Shows"
+    organized = output / "OrganizedShows"
+    state = output / "State"
+    episode_dir = shows / "Example Show" / "Season 01"
+    episode_dir.mkdir(parents=True)
+    organized.mkdir(parents=True)
+    (state / "cache").mkdir(parents=True)
+    (state / "runs").mkdir()
+    (episode_dir / "Example Show - S01E01.mkv").write_bytes(b"synthetic demo video")
+    (episode_dir / "Example Show - S01E01.en.srt").write_text(
+        "1\n00:00:00,000 --> 00:00:01,000\nDemo subtitle\n", encoding="utf-8"
+    )
+    (shows / "README.txt").write_text(
+        "Synthetic JMO demo media. It is safe to delete this entire directory.\n",
+        encoding="utf-8",
+    )
+    (output / "README.txt").write_text(
+        f"""JMO synthetic demo workspace
+
+This contains fabricated media only. It is safe to delete.
+
+Run from the repository or installed environment:
+
+jmo doctor "{shows}" --destination-root "{organized}" --output-dir "{state / 'runs' / 'initial'}" --cache-dir "{state / 'cache'}"
+jmo plan "{shows}" --destination-root "{organized}" --output-dir "{state / 'runs' / 'initial'}" --cache-dir "{state / 'cache'}" --offline
+
+The demo plan may remain unresolved because it has no provider cache.
+That is intentional: it demonstrates JMO's fail-closed behavior.
+""",
+        encoding="utf-8",
+    )
+    print(f"Created disposable demo workspace: {output}")
+    print(f"Read the instructions in: {output / 'README.txt'}")
+    return 0
 
 
 def _outside(path: Path, roots: tuple[Path, ...]) -> bool:

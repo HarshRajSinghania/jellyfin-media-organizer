@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 
 from jellyfin_show_organizer.user_commands import (
+    run_demo,
     run_doctor,
+    run_init,
     run_inspect,
     write_example,
 )
@@ -36,6 +38,39 @@ def test_doctor_rejects_state_inside_media(tmp_path: Path, capsys) -> None:
     destination.mkdir()
     assert run_doctor(source, destination, source / "state", tmp_path / "cache") == 2
     assert "FIX REQUIRED" in capsys.readouterr().out
+
+
+def test_init_creates_reusable_state_without_overwriting(tmp_path: Path, capsys) -> None:
+    source = tmp_path / "Shows"
+    destination = tmp_path / "Organized"
+    source.mkdir()
+    destination.mkdir()
+    state = tmp_path / "state"
+    assert run_init(source, destination, state) == 0
+    assert (state / "planning.toml").is_file()
+    assert (state / "base-overrides.toml").read_text(encoding="utf-8") == "schema_version = 4\n"
+    assert run_init(source, destination, state) == 2
+    assert "refusing" in capsys.readouterr().out.lower()
+
+
+def test_init_rejects_invalid_roots_and_mode(tmp_path: Path, capsys) -> None:
+    source = tmp_path / "Shows"
+    source.mkdir()
+    assert run_init(source, tmp_path / "missing", tmp_path / "state") == 2
+    assert "destination" in capsys.readouterr().out.lower()
+    destination = tmp_path / "Organized"
+    destination.mkdir()
+    assert run_init(source, destination, tmp_path / "state", provider_mode="bad") == 2
+    assert "provider mode" in capsys.readouterr().out.lower()
+
+
+def test_demo_creates_only_synthetic_workspace(tmp_path: Path, capsys) -> None:
+    output = tmp_path / "demo"
+    assert run_demo(output) == 0
+    assert (output / "Shows" / "Example Show" / "Season 01" / "Example Show - S01E01.mkv").is_file()
+    assert (output / "README.txt").is_file()
+    assert run_demo(output) == 2
+    assert "refusing" in capsys.readouterr().out.lower()
 
 
 def test_inspect_summarizes_run(tmp_path: Path, capsys) -> None:
