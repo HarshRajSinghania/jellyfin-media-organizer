@@ -53,7 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
         prog="organizer",
         description=(
             "Plan-first Jellyfin show organization tooling with an explicitly "
-            "approved, journaled apply boundary."
+            "approved, journaled apply, rollback, and duplicate-quarantine boundary."
         ),
     )
     parser.add_argument(
