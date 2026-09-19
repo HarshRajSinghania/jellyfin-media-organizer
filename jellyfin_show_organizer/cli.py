@@ -36,6 +36,13 @@ from .review_system import (
 )
 from .run_provenance import detect_source_revision
 from .tvmaze_cache import TvmazeCatalogCache
+from .user_commands import (
+    CONFIG_EXAMPLE,
+    OVERRIDES_EXAMPLE,
+    run_doctor,
+    run_inspect,
+    write_example,
+)
 
 CommandHandler = Callable[[argparse.Namespace], int]
 PLAN_SUCCESS_EXIT = 0
@@ -109,6 +116,30 @@ def build_parser() -> argparse.ArgumentParser:
     plan_parser.add_argument("--json", action="store_true", dest="json_output")
     plan_parser.add_argument("--verbose", action="store_true")
     plan_parser.set_defaults(handler=_run_plan)
+
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        help="Check source, destination, and state paths before planning.",
+        description=(
+            "Run read-only first-run checks. Doctor never scans metadata and never "
+            "changes media."
+        ),
+    )
+    doctor_parser.add_argument("shows_root", type=Path)
+    doctor_parser.add_argument("--destination-root", type=Path, required=True)
+    doctor_parser.add_argument("--output-dir", type=Path, required=True)
+    doctor_parser.add_argument("--cache-dir", type=Path, required=True)
+    doctor_parser.add_argument("--json", action="store_true", dest="json_output")
+    doctor_parser.set_defaults(handler=_run_doctor)
+
+    inspect_parser = subparsers.add_parser(
+        "inspect",
+        help="Summarize one completed audit bundle.",
+        description="Show plan counts and the safest next step without reading media.",
+    )
+    inspect_parser.add_argument("run_dir", type=Path)
+    inspect_parser.add_argument("--json", action="store_true", dest="json_output")
+    inspect_parser.set_defaults(handler=_run_inspect)
 
     review_parser = subparsers.add_parser(
         "review",
@@ -240,6 +271,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     stub_parser.add_argument("plan", type=Path)
     stub_parser.set_defaults(handler=_run_overrides_stub)
+
+    example_parser = overrides_subparsers.add_parser(
+        "example",
+        help="Print or write an empty schema-4 override starter.",
+    )
+    example_parser.add_argument("--output", type=Path)
+    example_parser.set_defaults(handler=_run_overrides_example)
+
+    config_parser = subparsers.add_parser(
+        "config",
+        help="Create or print reusable planning configuration.",
+    )
+    config_subparsers = config_parser.add_subparsers(
+        dest="config_command", required=True
+    )
+    config_example_parser = config_subparsers.add_parser(
+        "example", help="Print or write a starter planning.toml."
+    )
+    config_example_parser.add_argument("--output", type=Path)
+    config_example_parser.set_defaults(handler=_run_config_example)
 
     return parser
 
@@ -677,6 +728,32 @@ def _run_overrides_stub(args: argparse.Namespace) -> int:
 
     print(rendered, end="")
     return 0
+
+
+def _run_doctor(args: argparse.Namespace) -> int:
+    return run_doctor(
+        cast(Path, args.shows_root),
+        cast(Path, args.destination_root),
+        cast(Path, args.output_dir),
+        cast(Path, args.cache_dir),
+        json_output=bool(args.json_output),
+    )
+
+
+def _run_inspect(args: argparse.Namespace) -> int:
+    try:
+        return run_inspect(cast(Path, args.run_dir), json_output=bool(args.json_output))
+    except (OSError, UnicodeError, ValueError) as exc:
+        print(f"Inspect failed safely: {exc}", file=sys.stderr)
+        return 2
+
+
+def _run_overrides_example(args: argparse.Namespace) -> int:
+    return write_example(cast(Path | None, args.output), OVERRIDES_EXAMPLE)
+
+
+def _run_config_example(args: argparse.Namespace) -> int:
+    return write_example(cast(Path | None, args.output), CONFIG_EXAMPLE)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -1,0 +1,138 @@
+"""Small, read-only commands that make the core workflow approachable."""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+CONFIG_EXAMPLE = '''schema_version = 1
+
+[plan]
+destination_root = "../OrganizedShows"
+output_dir = "./audit"
+cache_dir = "./cache"
+provider_mode = "online"
+max_path_length = 240
+max_component_length = 180
+'''
+
+OVERRIDES_EXAMPLE = "schema_version = 4\n"
+
+
+def _outside(path: Path, roots: tuple[Path, ...]) -> bool:
+    resolved = path.expanduser().resolve(strict=False)
+    return all(resolved != root and not resolved.is_relative_to(root) for root in roots)
+
+
+def run_doctor(
+    shows_root: Path,
+    destination_root: Path,
+    output_dir: Path,
+    cache_dir: Path,
+    *,
+    json_output: bool = False,
+) -> int:
+    """Check common first-run conditions without scanning or changing media."""
+
+    source = shows_root.expanduser().resolve(strict=False)
+    destination = destination_root.expanduser().resolve(strict=False)
+    output = output_dir.expanduser().resolve(strict=False)
+    cache = cache_dir.expanduser().resolve(strict=False)
+    checks: list[dict[str, object]] = []
+
+    def check(name: str, ok: bool, detail: str) -> None:
+        checks.append({"name": name, "ok": ok, "detail": detail})
+
+    check("source_exists", source.is_dir(), str(source))
+    check("source_is_not_link", source.is_dir() and not source.is_symlink(), str(source))
+    check("destination_exists", destination.is_dir(), str(destination))
+    same_filesystem = False
+    if source.is_dir() and destination.is_dir():
+        try:
+            same_filesystem = os.stat(source).st_dev == os.stat(destination).st_dev
+        except OSError:
+            same_filesystem = False
+    check("same_filesystem", same_filesystem, "source and destination device match")
+    roots = (source, destination)
+    check("output_outside_media", _outside(output, roots), str(output))
+    check("cache_outside_media", _outside(cache, roots), str(cache))
+    if source.is_dir():
+        try:
+            entries = sum(1 for item in source.rglob("*") if item.is_file())
+        except OSError:
+            entries = -1
+        check("source_readable", entries >= 0, f"{entries if entries >= 0 else 'unreadable'} entries visible")
+    ready = all(bool(item["ok"]) for item in checks)
+    payload = {"schema_version": 1, "ready": ready, "checks": checks}
+    if json_output:
+        print(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+    else:
+        print("Doctor: READY" if ready else "Doctor: FIX REQUIRED")
+        for item in checks:
+            print(f"{'PASS' if item['ok'] else 'FAIL'}  {item['name']}: {item['detail']}")
+        if ready:
+            print("Next step: run jmo plan with these roots and an explicit state directory.")
+    return 0 if ready else 2
+
+
+def run_inspect(run_dir: Path, *, json_output: bool = False) -> int:
+    """Summarize an audit bundle without exposing paths or requiring its source tree."""
+
+    root = run_dir.expanduser().resolve(strict=True)
+    summary_path = root / "summary.txt"
+    if not summary_path.is_file():
+        print(f"Inspect failed: {root} does not contain summary.txt")
+        return 2
+    values: dict[str, str] = {}
+    for line in summary_path.read_text(encoding="utf-8-sig").splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            values[key] = value
+    result = {
+        "schema_version": 1,
+        "run_dir": str(root),
+        "readiness_state": values.get("readiness_state", "not-evaluated"),
+        "preflight_ready": values.get("preflight_ready", "unknown"),
+        "records": int(values.get("records", "0")),
+        "matched": int(values.get("matched", "0")),
+        "extra": int(values.get("extra", "0")),
+        "duplicate": int(values.get("duplicate", "0")),
+        "held": int(values.get("held", "0")),
+        "suspicious": int(values.get("suspicious", "0")),
+        "unresolved": int(values.get("unresolved", "0")),
+        "remaining_total": int(values.get("remaining_total", "0")),
+        "plan_sha256": values.get("plan_sha256"),
+    }
+    if json_output:
+        print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+    else:
+        print(f"Run: {root}")
+        print(f"Status: {result['readiness_state']}")
+        for key in ("records", "matched", "extra", "duplicate", "held", "suspicious", "unresolved", "remaining_total"):
+            print(f"{key.replace('_', ' ').title():18} {result[key]}")
+        if result["readiness_state"] == "apply-ready":
+            print("Next step: run jmo apply ... --check-only before any mutation.")
+        elif result["duplicate"] or result["held"]:
+            print("Next step: run jmo review against this run's plan.json.")
+        else:
+            print("Next step: inspect preflight.txt and unresolved.csv for blockers.")
+    return 0
+
+
+def write_example(path: Path | None, content: str) -> int:
+    """Print or create a starter file, refusing accidental overwrites."""
+
+    if path is None:
+        print(content, end="")
+        return 0
+    target = path.expanduser().resolve(strict=False)
+    if target.exists():
+        print(f"Refusing to overwrite existing file: {target}")
+        return 2
+    if not target.parent.is_dir():
+        print(f"Output directory does not exist: {target.parent}")
+        return 2
+    target.write_text(content, encoding="utf-8", newline="\n")
+    print(f"Wrote example: {target}")
+    return 0

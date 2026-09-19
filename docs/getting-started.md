@@ -78,6 +78,18 @@ jmo overrides validate LocalState/base-overrides.toml
 Use a disposable copy or a small representative subset first. Replace the
 example paths with your own exact directories:
 
+Before the first plan, run the read-only environment check:
+
+```text
+jmo doctor /path/to/Shows \
+  --destination-root /path/to/OrganizedShows \
+  --output-dir LocalState/audit \
+  --cache-dir LocalState/cache
+```
+
+Every check must pass before planning. This catches missing roots, cross-volume
+destinations, and state directories accidentally placed inside the media tree.
+
 ```text
 jmo plan /path/to/Shows --config LocalState/planning.toml --overrides LocalState/base-overrides.toml
 ```
@@ -93,6 +105,20 @@ Inspect the generated `summary.txt`, `preflight.txt`, `mapping.csv`,
 finish successfully while still leaving intentional held files or duplicate
 losers at the source. `preflight_ready=true` means the approved movable subset
 is safe; it does not mean every file will move.
+
+For a quick overview without opening the report files individually:
+
+```text
+jmo inspect LocalState/audit
+```
+
+To generate the starter files from the installed version instead of copying
+them from this guide:
+
+```text
+jmo config example --output LocalState/planning.toml
+jmo overrides example --output LocalState/base-overrides.toml
+```
 
 If the plan contains duplicate or held review items, run:
 
