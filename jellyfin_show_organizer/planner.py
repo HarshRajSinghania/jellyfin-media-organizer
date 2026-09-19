@@ -642,16 +642,18 @@ def _logical_identity(record: PlanRecord) -> str:
 
 
 def _provider_episode_duplicate_collision_key(record: PlanRecord) -> str | None:
-    evidence = record.evidence
-    if (
-        evidence is None
-        or _PROVIDER_EPISODE_DUPLICATE_CANDIDATE not in evidence.reasons
-    ):
-        return None
+    # Every resolved provider episode is a potential logical destination
+    # collision, regardless of whether the resolver happened to annotate the
+    # source with the duplicate-candidate evidence marker.  The marker is an
+    # optimization used by the resolver for ambiguous assignment families;
+    # relying on it here allowed two independently resolved releases (for
+    # example an MKV and an MP4 of the same episode) to pass apply and only be
+    # discovered as a collision on the next scan after they were managed.
+    # Grouping all resolved episode sets is fail-closed: singleton groups do
+    # not produce a duplicate result, while repeated provider coordinates are
+    # forced through the normal reviewed duplicate decision path.
     if record.show is None or not record.provider_episodes:
-        raise PlanningConfigurationError(
-            "provider-episode duplicate candidate is missing resolved identity"
-        )
+        return None
     episode_ids = tuple(
         sorted(episode.provider_identity.key for episode in record.provider_episodes)
     )
@@ -707,6 +709,15 @@ def _apply_duplicate_decisions(
         )
     movable_configured_keys = configured_keys & candidate_keys
 
+    provider_collision_counts: dict[str, int] = defaultdict(int)
+    provider_collision_keys: dict[str, str] = {}
+    for record in candidate_records:
+        collision_key = _provider_episode_duplicate_collision_key(record)
+        if collision_key is not None:
+            source_key = _path_key(record.source.relative_path)[0]
+            provider_collision_counts[collision_key] += 1
+            provider_collision_keys[source_key] = collision_key
+
     provider_duplicate_keys: set[str] = set()
     candidates: list[DuplicateCandidate] = []
     for record in candidate_records:
@@ -732,9 +743,12 @@ def _apply_duplicate_decisions(
                 else None
             )
         )
-        collision_key = _provider_episode_duplicate_collision_key(record)
-        if collision_key is not None:
-            provider_duplicate_keys.add(_path_key(record.source.relative_path)[0])
+        source_key = _path_key(record.source.relative_path)[0]
+        collision_key = provider_collision_keys.get(source_key)
+        if collision_key is not None and provider_collision_counts[collision_key] > 1:
+            provider_duplicate_keys.add(source_key)
+        else:
+            collision_key = None
         candidates.append(
             DuplicateCandidate(
                 operation_key=record.source.relative_path,
