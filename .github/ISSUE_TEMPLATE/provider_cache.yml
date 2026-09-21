@@ -1,0 +1,38 @@
+name: Provider or cache problem
+description: Report metadata-provider discovery, cache, freshness, or offline replay behavior.
+title: "[Provider]: "
+labels: [provider]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach provider caches, API keys, real library paths, or private audit bundles.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem description
+      description: Explain the provider or cache behavior and the expected fail-closed result.
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Provider mode
+      options:
+        - Online
+        - Offline replay
+        - Both
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: JMO version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: safe_evidence
+    attributes:
+      label: Safe evidence
+      description: Provide redacted error text, public show titles, hashes, and exit codes only.

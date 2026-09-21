@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a user-facing improvement that preserves JMO's deterministic safety model.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What user problem does this address, and who would benefit?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the workflow, command, or API change.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Safety and portability considerations
+      description: Explain how this works across platforms and preserves fail-closed behavior.
+    validations:
+      required: true

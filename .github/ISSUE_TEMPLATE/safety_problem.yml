@@ -1,0 +1,41 @@
+name: Apply or recovery safety problem
+description: Report a potential unsafe move, rollback, quarantine, journal, or approval-boundary issue.
+title: "[Safety]: "
+labels: [safety]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If files may have been moved incorrectly, stop using JMO and preserve the journal. Do not post private paths or manifests publicly; contact the maintainer privately if needed.
+  - type: textarea
+    id: impact
+    attributes:
+      label: Safety impact
+      description: Explain what could move, be overwritten, deleted, quarantined, or become unrecoverable.
+    validations:
+      required: true
+  - type: dropdown
+    id: command
+    attributes:
+      label: Affected operation
+      options:
+        - Apply check-only
+        - Apply mutation
+        - Rollback
+        - Resume
+        - Quarantine
+        - Review or approval boundary
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: JMO version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: redacted_evidence
+    attributes:
+      label: Redacted evidence
+      description: Include only safe hashes, counts, exit codes, and synthetic reproduction details.

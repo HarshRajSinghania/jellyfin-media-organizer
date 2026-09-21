@@ -1,0 +1,51 @@
+name: Bug report
+description: Report incorrect planning, review, apply, or recovery behavior.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not include real media paths, inventories, provider caches, manifests, or private override files.
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Describe the observed behavior and the behavior you expected.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: JMO version or commit
+      placeholder: v0.1.0 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: command
+    attributes:
+      label: Affected command
+      options:
+        - jmo plan
+        - jmo review
+        - jmo apply --check-only
+        - jmo apply
+        - jmo rollback
+        - jmo quarantine
+        - jmo init / inspect / doctor / demo
+        - Library/API usage
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Provide a minimal synthetic filename/folder example and safe reproduction steps.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Safe diagnostics
+      description: Paste redacted summaries, exit codes, or hashes. Never paste private media paths or credentials.

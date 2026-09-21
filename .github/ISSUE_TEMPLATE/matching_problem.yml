@@ -1,0 +1,33 @@
+name: Parser or matching problem
+description: Report a filename parsing, show resolution, numbering, or duplicate-classification problem.
+title: "[Matching]: "
+labels: [matching]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use synthetic or fully redacted examples. Do not upload private library reports or provider caches.
+  - type: textarea
+    id: examples
+    attributes:
+      label: Synthetic examples
+      description: List representative filenames, parent-folder names, and the expected classification.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed result
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: JMO version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: provider
+    attributes:
+      label: Provider/cache context
+      description: State whether this was online or offline and identify only the public provider/catalog involved.
