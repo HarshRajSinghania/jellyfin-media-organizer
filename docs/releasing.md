@@ -2,13 +2,13 @@
 
 Jellyfin Media Organizer (JMO) uses Semantic Versioning for public releases. While the project remains pre-1.0, minor versions may introduce planned interface changes and patch versions are reserved for compatible fixes and packaging/documentation corrections.
 
-**No JMO release or version tag has been created yet by design.** The first public release is a deliberate milestone decision, not something created automatically by ordinary development or CI.
+The `v0.1.0` version tag is the first verified JMO version tag. A GitHub Release is published separately after the matching CI and release-artifact checks pass. Neither a tag nor a GitHub Release authorizes media mutation.
 
 ## Version source of truth
 
 The package version is defined once as `jellyfin_show_organizer.__version__`. Build metadata reads that value through setuptools, and installed package metadata must match it exactly.
 
-Before creating the first or any later public release:
+Before creating the first or any later version tag or GitHub Release:
 
 1. decide explicitly that the current product and gated apply boundary are ready to release;
 2. update `jellyfin_show_organizer.__version__` in a normal reviewed change when needed;

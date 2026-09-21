@@ -284,9 +284,7 @@ def _reviewed_episode_record(
         destination=destination.relative_path,
         extra=None,
         duplicate=None,
-        provider_episodes=tuple(
-            plan_episode(episode) for episode in episodes
-        ),
+        provider_episodes=tuple(plan_episode(episode) for episode in episodes),
         reason=None,
     )
 
@@ -436,12 +434,9 @@ def _apply_review_extensions(
         max_component_length=config.max_component_length,
     )
     records = _clear_duplicate_decisions(plan.records)
-    source_keys = {
-        path_key(record.source.relative_path)[0] for record in records
-    }
+    source_keys = {path_key(record.source.relative_path)[0] for record in records}
     configured_episodes = {
-        path_key(decision.source)[0]
-        for decision in catalog.reviewed_episode_decisions
+        path_key(decision.source)[0] for decision in catalog.reviewed_episode_decisions
     }
     configured_extras = {
         path_key(decision.source)[0] for decision in catalog.extra_decisions
@@ -681,9 +676,7 @@ def execute_plan(
         roots,
         "output directory",
     )
-    cache_dir = external_state_path(
-        config.cache_dir, roots, "cache directory"
-    )
+    cache_dir = external_state_path(config.cache_dir, roots, "cache directory")
     if output_dir.exists():
         raise PlanningConfigurationError("output directory already exists")
     if not output_dir.parent.is_dir():

@@ -156,12 +156,12 @@ def test_readme_links_current_operational_documentation():
         assert path in text
 
 
-def test_release_docs_do_not_claim_a_jmo_release_already_exists():
+def test_release_docs_describe_the_verified_version_tag():
     readme = README.read_text(encoding="utf-8")
     releasing = RELEASING.read_text(encoding="utf-8")
 
-    assert "No JMO release or tag has been created yet by design" in readme
-    assert "No JMO release or version tag has been created yet by design" in releasing
+    assert "The `v0.1.0` version tag has been created" in readme
+    assert "The `v0.1.0` version tag is the first verified JMO version tag" in releasing
     assert "Current releases are **plan-only**" not in readme
     assert "Current releases are **plan-only**" not in releasing
     assert "workflow artifact is not itself a decision to publish" in releasing

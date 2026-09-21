@@ -1,6 +1,12 @@
 # Changelog
 
-All notable public changes will be documented in this file. The project follows Semantic Versioning once releases begin.
+All notable public changes will be documented in this file. The project follows Semantic Versioning.
+
+## 0.1.0 - 2026-09-21
+
+- First verified standalone JMO version tag and release-artifact build.
+- Jellyfin-focused, plan-first TV-show organization workflow with non-mutating
+  planning and review plus explicitly gated apply execution.
 
 ## Unreleased
 

@@ -20,13 +20,16 @@ def test_doctor_reports_ready_and_json(tmp_path: Path, capsys) -> None:
     destination.mkdir()
     (source / "Episode.mkv").write_bytes(b"x")
 
-    assert run_doctor(
-        source,
-        destination,
-        tmp_path / "state",
-        tmp_path / "cache",
-        json_output=True,
-    ) == 0
+    assert (
+        run_doctor(
+            source,
+            destination,
+            tmp_path / "state",
+            tmp_path / "cache",
+            json_output=True,
+        )
+        == 0
+    )
     payload = json.loads(capsys.readouterr().out)
     assert payload["ready"] is True
     assert payload["checks"]
@@ -44,16 +47,21 @@ def test_doctor_rejects_state_inside_media(tmp_path: Path, capsys) -> None:
 def test_doctor_reports_missing_source(tmp_path: Path, capsys) -> None:
     destination = tmp_path / "Organized"
     destination.mkdir()
-    assert run_doctor(
-        tmp_path / "MissingShows",
-        destination,
-        tmp_path / "state",
-        tmp_path / "cache",
-    ) == 2
+    assert (
+        run_doctor(
+            tmp_path / "MissingShows",
+            destination,
+            tmp_path / "state",
+            tmp_path / "cache",
+        )
+        == 2
+    )
     assert "source_exists" in capsys.readouterr().out
 
 
-def test_init_creates_reusable_state_without_overwriting(tmp_path: Path, capsys) -> None:
+def test_init_creates_reusable_state_without_overwriting(
+    tmp_path: Path, capsys
+) -> None:
     source = tmp_path / "Shows"
     destination = tmp_path / "Organized"
     source.mkdir()
@@ -61,7 +69,9 @@ def test_init_creates_reusable_state_without_overwriting(tmp_path: Path, capsys)
     state = tmp_path / "state"
     assert run_init(source, destination, state) == 0
     assert (state / "planning.toml").is_file()
-    assert (state / "base-overrides.toml").read_text(encoding="utf-8") == "schema_version = 4\n"
+    assert (state / "base-overrides.toml").read_text(
+        encoding="utf-8"
+    ) == "schema_version = 4\n"
     config = tomllib.loads((state / "planning.toml").read_text(encoding="utf-8"))
     assert config["schema_version"] == 1
     assert config["plan"]["overrides"] == "base-overrides.toml"
@@ -83,10 +93,14 @@ def test_init_rejects_invalid_roots_and_mode(tmp_path: Path, capsys) -> None:
 def test_demo_creates_only_synthetic_workspace(tmp_path: Path, capsys) -> None:
     output = tmp_path / "demo"
     assert run_demo(output) == 0
-    assert (output / "Shows" / "Example Show" / "Season 01" / "Example Show - S01E01.mkv").is_file()
+    assert (
+        output / "Shows" / "Example Show" / "Season 01" / "Example Show - S01E01.mkv"
+    ).is_file()
     assert (output / "README.txt").is_file()
     assert (output / "State" / "runs" / "demo-run" / "plan.json").is_file()
-    assert "apply-ready" in (output / "State" / "runs" / "demo-run" / "summary.txt").read_text(encoding="utf-8")
+    assert "apply-ready" in (
+        output / "State" / "runs" / "demo-run" / "summary.txt"
+    ).read_text(encoding="utf-8")
     assert run_demo(output) == 2
     assert "refusing" in capsys.readouterr().out.lower()
 
@@ -112,6 +126,18 @@ def test_inspect_requires_summary(tmp_path: Path, capsys) -> None:
     assert "summary.txt" in capsys.readouterr().out
 
 
+def test_inspect_points_blocked_review_runs_to_review(tmp_path: Path, capsys) -> None:
+    (tmp_path / "summary.txt").write_text(
+        "records=3\nmatched=2\nextra=0\nduplicate=1\nheld=0\n"
+        "suspicious=0\nunresolved=0\nremaining_total=1\n"
+        "readiness_state=blocked\npreflight_ready=false\n",
+        encoding="utf-8",
+    )
+
+    assert run_inspect(tmp_path) == 0
+    assert "jmo review" in capsys.readouterr().out
+
+
 def test_write_example_refuses_overwrite(tmp_path: Path, capsys) -> None:
     target = tmp_path / "example.toml"
     assert write_example(target, "x\n") == 0
@@ -120,7 +146,9 @@ def test_write_example_refuses_overwrite(tmp_path: Path, capsys) -> None:
     assert "Refusing" in capsys.readouterr().out
 
 
-def test_write_example_can_print_and_reject_missing_parent(capsys, tmp_path: Path) -> None:
+def test_write_example_can_print_and_reject_missing_parent(
+    capsys, tmp_path: Path
+) -> None:
     assert write_example(None, "schema_version = 1\n") == 0
     assert "schema_version" in capsys.readouterr().out
     assert write_example(tmp_path / "missing" / "example.toml", "x\n") == 2

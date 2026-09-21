@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
 
-CONFIG_EXAMPLE = '''schema_version = 1
+CONFIG_EXAMPLE = """schema_version = 1
 
 [plan]
 destination_root = "../OrganizedShows"
@@ -18,7 +18,7 @@ cache_dir = "./cache"
 provider_mode = "online"
 max_path_length = 240
 max_component_length = 180
-'''
+"""
 
 OVERRIDES_EXAMPLE = "schema_version = 4\n"
 
@@ -39,7 +39,9 @@ def run_init(
         print(f"Init failed: source must be a real existing directory: {source}")
         return 2
     if not destination.is_dir() or destination.is_symlink():
-        print(f"Init failed: destination must be a real existing directory: {destination}")
+        print(
+            f"Init failed: destination must be a real existing directory: {destination}"
+        )
         return 2
     try:
         if os.stat(source).st_dev != os.stat(destination).st_dev:
@@ -49,7 +51,9 @@ def run_init(
         print(f"Init failed: cannot inspect source and destination filesystems: {exc}")
         return 2
     if not _outside(state, (source, destination)):
-        print("Init failed: state directory must be outside source and destination roots")
+        print(
+            "Init failed: state directory must be outside source and destination roots"
+        )
         return 2
     if provider_mode not in {"online", "offline", "refresh"}:
         print(f"Init failed: unsupported provider mode: {provider_mode}")
@@ -80,8 +84,10 @@ def run_init(
         OVERRIDES_EXAMPLE, encoding="utf-8", newline="\n"
     )
     print(f"Initialized JMO state: {state}")
-    print(f"Next step: jmo doctor \"{source}\" --destination-root \"{destination}\" --output-dir \"{state / 'runs' / 'initial'}\" --cache-dir \"{state / 'cache'}\"")
-    print(f"Then:      jmo plan \"{source}\" --config \"{state / 'planning.toml'}\"")
+    print(
+        f'Next step: jmo doctor "{source}" --destination-root "{destination}" --output-dir "{state / "runs" / "initial"}" --cache-dir "{state / "cache"}"'
+    )
+    print(f'Then:      jmo plan "{source}" --config "{state / "planning.toml"}"')
     return 0
 
 
@@ -120,9 +126,7 @@ def run_demo(output_dir: Path | None) -> int:
     from .review_execution import execute_plan
     from .tvmaze_cache import TVMAZE_EPISODES_URL, TVMAZE_SEARCH_URL, TvmazeCatalogCache
 
-    def demo_getter(
-        url: str, params: Mapping[str, str] | None = None
-    ) -> object:
+    def demo_getter(url: str, params: Mapping[str, str] | None = None) -> object:
         if url == TVMAZE_SEARCH_URL:
             return [
                 {
@@ -171,7 +175,7 @@ This contains fabricated media only. It is safe to delete.
 
 Run from the repository or installed environment:
 
-jmo doctor "{shows}" --destination-root "{organized}" --output-dir "{state / 'runs' / 'initial'}" --cache-dir "{state / 'cache'}"
+jmo doctor "{shows}" --destination-root "{organized}" --output-dir "{state / "runs" / "initial"}" --cache-dir "{state / "cache"}"
 jmo inspect "{demo_run}"
 
 The demo plan is created from a local synthetic provider cache and never makes
@@ -211,7 +215,9 @@ def run_doctor(
         checks.append({"name": name, "ok": ok, "detail": detail})
 
     check("source_exists", source.is_dir(), str(source))
-    check("source_is_not_link", source.is_dir() and not source.is_symlink(), str(source))
+    check(
+        "source_is_not_link", source.is_dir() and not source.is_symlink(), str(source)
+    )
     check("destination_exists", destination.is_dir(), str(destination))
     same_filesystem = False
     if source.is_dir() and destination.is_dir():
@@ -228,7 +234,11 @@ def run_doctor(
             entries = sum(1 for item in source.rglob("*") if item.is_file())
         except OSError:
             entries = -1
-        check("source_readable", entries >= 0, f"{entries if entries >= 0 else 'unreadable'} entries visible")
+        check(
+            "source_readable",
+            entries >= 0,
+            f"{entries if entries >= 0 else 'unreadable'} entries visible",
+        )
     ready = all(bool(item["ok"]) for item in checks)
     payload = {"schema_version": 1, "ready": ready, "checks": checks}
     if json_output:
@@ -236,9 +246,13 @@ def run_doctor(
     else:
         print("Doctor: READY" if ready else "Doctor: FIX REQUIRED")
         for item in checks:
-            print(f"{'PASS' if item['ok'] else 'FAIL'}  {item['name']}: {item['detail']}")
+            print(
+                f"{'PASS' if item['ok'] else 'FAIL'}  {item['name']}: {item['detail']}"
+            )
         if ready:
-            print("Next step: run jmo plan with these roots and an explicit state directory.")
+            print(
+                "Next step: run jmo plan with these roots and an explicit state directory."
+            )
     return 0 if ready else 2
 
 
@@ -275,7 +289,16 @@ def run_inspect(run_dir: Path, *, json_output: bool = False) -> int:
     else:
         print(f"Run: {root}")
         print(f"Status: {result['readiness_state']}")
-        for key in ("records", "matched", "extra", "duplicate", "held", "suspicious", "unresolved", "remaining_total"):
+        for key in (
+            "records",
+            "matched",
+            "extra",
+            "duplicate",
+            "held",
+            "suspicious",
+            "unresolved",
+            "remaining_total",
+        ):
             print(f"{key.replace('_', ' ').title():18} {result[key]}")
         if result["readiness_state"] == "apply-ready":
             print("Next step: run jmo apply ... --check-only before any mutation.")

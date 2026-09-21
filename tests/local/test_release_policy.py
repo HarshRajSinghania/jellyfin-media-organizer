@@ -45,7 +45,7 @@ def test_release_policy_keeps_gated_apply_and_private_data_boundaries_explicit()
     text = RELEASE_DOC.read_text(encoding="utf-8")
 
     assert "Semantic Versioning" in text
-    assert "No JMO release or version tag has been created yet by design" in text
+    assert "The `v0.1.0` version tag is the first verified JMO version tag" in text
     assert "exact reviewed-artifact approval" in text
     assert "no copy/delete/quarantine/source cleanup" in text
     assert "There is currently no automatic PyPI" in text

@@ -464,11 +464,17 @@ def _run_plan(args: argparse.Namespace) -> int:
         )
         print(f"Audit bundle: {config.output_dir.resolve(strict=False)}")
         if outcome.preflight.ready:
-            print("Next step: inspect the bundle, then run jmo review if duplicate or held items need decisions.")
+            print(
+                "Next step: inspect the bundle, then run jmo review if duplicate or held items need decisions."
+            )
         elif unresolved:
-            print("Next step: inspect unresolved.csv and preflight.txt; keep uncertain files untouched.")
+            print(
+                "Next step: inspect unresolved.csv and preflight.txt; keep uncertain files untouched."
+            )
         else:
-            print("Next step: inspect preflight.txt before changing inputs or retrying.")
+            print(
+                "Next step: inspect preflight.txt before changing inputs or retrying."
+            )
     return exit_code
 
 
@@ -599,7 +605,9 @@ def _run_review(args: argparse.Namespace) -> int:
     )
     if session.complete:
         print(f"Review complete: {state_text}")
-        print("Next step: compile a fresh reviewed plan with jmo plan and --review-session.")
+        print(
+            "Next step: compile a fresh reviewed plan with jmo plan and --review-session."
+        )
         return 0
     if session.approved_partial:
         print(
@@ -727,7 +735,9 @@ def _run_apply(args: argparse.Namespace) -> int:
             f"members={total_moving_members(prepared)}"
         )
         print(f"Confirmation token:\n{token}")
-        print("Next step: review the counts and token; only then run the same command without --check-only and with --journal.")
+        print(
+            "Next step: review the counts and token; only then run the same command without --check-only and with --journal."
+        )
     else:
         print(
             "Apply complete: "
